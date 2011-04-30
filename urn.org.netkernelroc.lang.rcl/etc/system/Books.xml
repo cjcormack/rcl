@@ -1,0 +1,21 @@
+<books>
+
+  <book>
+    <id>book:lang:rcl:book</id>
+    <title>RCL - Resource Composition Language</title>
+    <desc>Documentation for the Resource Composition Language and runtime service</desc>
+    <author>Randolph Kahle</author>
+    <publisher>NetKernel ROC</publisher>
+    <date />
+    <modified />
+    <icon />
+    <keywords />
+    <toc>
+      <item id="doc:lang:rcl:title">
+        <item id="doc:lang:rcl:overview"/>
+        <item id="doc:lang:rcl:fn(x)"/>
+      </item>
+    </toc>
+  </book>
+
+</books>

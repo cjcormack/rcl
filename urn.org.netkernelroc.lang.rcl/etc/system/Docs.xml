@@ -1,0 +1,24 @@
+<docs>
+
+  <doc>
+    <id>doc:lang:rcl:title</id>
+    <title>RCL</title>
+    <desc>A guide to RCL, the Resource Composition Language</desc>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/title.txt</uri>
+  </doc>
+
+  <doc>
+    <id>doc:lang:rcl:overview</id>
+    <title>Overview</title>
+    <desc>An overview of RCL, the Resource Composition Language</desc>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/overview.txt</uri>
+  </doc>
+  <doc>
+    <id>doc:lang:rcl:fn(x)</id>
+    <title>FN(x)</title>
+    <desc>A description of a particular function</desc>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/fn.txt</uri>
+  </doc>
+
+
+</docs>

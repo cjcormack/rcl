@@ -1,0 +1,69 @@
+<module version="2.0">
+	<meta>
+		<identity>
+			<uri>urn:org:netkernelroc:lang:rcl</uri>
+			<version>0.0.1</version>
+		</identity>
+		<info>
+			<name>Lang / RCL</name>
+			<description>RCL - Resource Composition Language</description>
+			<icon>res:/org/netkernelroc/lang/rcl/doc/images/rcl.png</icon>
+		</info>
+	</meta>
+	<system>
+	</system>
+
+  <rootspace>
+    <fileset>
+      <regex>res:/etc/system/.*</regex>
+    </fileset>
+    <fileset>
+      <regex>res:/org/netkernelroc/lang/rcl/doc/.*</regex>
+    </fileset>
+  </rootspace>
+
+
+  <!--
+	<rootspace>
+		<accessor>
+			<class>org.netkernel.lang.xrl.endpoint.XRL2Runtime</class>
+			<name>XML Recursive Linker (XRL)</name>
+			<description>Reads and processes XRL language commands within an XML template</description>
+			<doc>res:/org/ten60/netkernel/lang/xrl/xrl2.txt</doc>
+			<id>XRL2Runtime</id>
+			<grammar>
+				<active>
+					<identifier>active:xrl2</identifier>
+					<argument name="template" min="1" max="1" desc="XML template with XRL language instructions"/>
+					<argument name="mimetype" min="0" max="1" desc="Override the default response MIME type (application/xml)"/>
+					<argument name="tolerant" min="0" max="1" desc="Force XRL to be tolerant of errors and log exceptions as warnings"/>
+          <varargs/>
+				</active>
+			</grammar>
+		</accessor>
+		<accessor>
+			<class>org.netkernel.lang.xrl.endpoint.XRL3Runtime</class>
+			<name>XML Recursive Linker 3</name>
+			<description>New XRL which is driven from logical structure of the space in which it operates rather than an explicit links definition</description>
+			<doc>res:/org/ten60/netkernel/lang/xrl/xrl2.txt</doc>
+			<id>XRL3Runtime</id>
+			<grammar>
+				<active>
+					<identifier>active:xrl3</identifier>
+					<argument name="template" min="1" max="1"/>
+					<argument name="mimetype" min="0" max="1"/>
+					<argument name="tolerant" min="0" max="1"/>
+					<varargs/>
+				</active>
+			</grammar>
+		</accessor>
+		<fileset>
+			<regex>res:(/etc/system/(Books|Docs)\.xml|/org/netkernel/lang/xrl/.*)</regex>
+		</fileset>
+		<import>
+			<private/>
+			<uri>urn:org:netkernel:xml:core</uri>
+		</import>
+	</rootspace>
+	-->
+</module>
