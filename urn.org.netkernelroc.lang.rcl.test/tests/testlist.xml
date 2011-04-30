@@ -1,0 +1,30 @@
+<testlist>
+  <import>res:/org/netkernel/xml/assert/assertLibrary.xml</import>
+
+  <test name="Simple template processing">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">res:/resources/basic-template.xml</argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <xpath>/div/p</xpath>
+    </assert>
+  </test>
+
+  <test name="Simple include processing">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">res:/resources/template-with-simple-include.xml</argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <xpath>/div/div</xpath>
+    </assert>
+  </test>
+
+</testlist>

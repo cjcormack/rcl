@@ -1,0 +1,47 @@
+
+=rcl:if=
+
+
+
+
+
+The ''rcl:if'' tag is used to include a resource within an XML document.
+
+The ''rcl:include'' tag must include a ''rcl:request'' tag which specifies a
+[[doc:logicalreference:module:standard:logical:declarative:request:syntax|declarative request]].
+When the request is processed, the returned representation is placed in
+the XML document.
+If the optional ''rcl:xpath'' tag is present it specifies the location within the
+XML document where the replacement occurs. If the ''rcl:xpath'' tag is
+absent then the enclosing ''rcl:include'' tag is the replacement target.
+After processing, the rcl:include tag and the namespace attribute are
+removed from the resulting XML document.
+
+Note: the ''rcl:xpath'' tag is not yet implemented.
+
+The first example illustrates a rcl:include tag replaced by the
+requested resource representation.
+The following template:
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<h1>Header</h1>
+<rcl:include>
+<rcl:request>
+<rcl:identifier>res:/resource/detail.xml</rcl:identifier>
+</rcl:request>
+</rcl:include>
+</div>{/xml}
+
+requests the resource ''res:/resource/detail.xml'' which contains:
+
+{xml}<p>This is detail information</p>{/xml}
+
+After the requested resource representation replaces the rcl:include tag
+and the namespace attribute is removed,
+the result is the following XML document:
+
+{xml}<div>
+<h1>Header</h1>
+<p>This is detail information</p></div>{/xml}
+
+

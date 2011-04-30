@@ -11,9 +11,31 @@
 		</info>
 	</meta>
 	<system>
+    <dynamic/>
 	</system>
 
   <rootspace>
+
+    <!-- TODO: fix up doc link -->
+    <accessor>
+      <id>RCLRuntime</id>
+      <grammar>
+        <active>
+          <identifier>active:rcl</identifier>
+          <argument name="template" min="1" max="1" desc="RCL XML template with RCL language instructions"/>
+          <argument name="mimetype" min="0" max="1" desc="Override the default response MIME type (application/xml)"/>
+          <argument name="tolerant" min="0" max="1" desc="Force RCL to be tolerant of errors and log exceptions as warnings"/>
+          <varargs/>
+        </active>
+      </grammar>
+      <name>RCL Resource Composition Language</name>
+      <description>Reads and processes RCL language commands within an XML template</description>
+      <doc>res:/org/netkernelroc/lang/rcl/doc/fn.txt</doc>
+      <class>org.netkernelroc.lang.rcl.endpoint.RCLRuntime</class>
+    </accessor>
+
+
+
     <fileset>
       <regex>res:/etc/system/.*</regex>
     </fileset>

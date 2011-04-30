@@ -1,0 +1,8 @@
+<tests>
+  <test>
+    <id>urn:org:netkernelroc:lang:rcl:test</id>
+    <name>RCL Testing</name>
+    <desc>Tests for the RCL Language</desc>
+    <uri>res:/tests/testlist.xml</uri>
+  </test>
+</tests>

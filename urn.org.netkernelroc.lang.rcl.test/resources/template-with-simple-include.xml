@@ -1,0 +1,9 @@
+<div xmlns:rcl="http://netkernelroc.org/rcl">
+  <p>This is a template</p>
+  <rcl:include>
+    <rcl:request>
+      <rcl:identifier>res:/resources/simple-content.xml</rcl:identifier>
+    </rcl:request>
+  </rcl:include>
+</div>
+

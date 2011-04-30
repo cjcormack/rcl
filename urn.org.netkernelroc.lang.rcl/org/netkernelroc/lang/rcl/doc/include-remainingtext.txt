@@ -1,0 +1,146 @@
+
+= Not Refactored After This Point =
+
+The rcl:include tag uses  elements of the
+[[doc:logicalreference:module:standard:logical:declarative:request:syntax|declarative request]]
+as child elements (within the namespace ''rcl:'').
+When the rcl:include tag is processed, the request it defines is issued and the
+returned representation is placed in the resulting XML document.
+If the rcl:include tag contains the ''rcl:xpath'' tag then
+the specified XPath locates the node in the XML template replaced by the representation.
+If the XPath tag is absent the returned representation
+replaces the rcl:include tag itself.
+After processing, the rcl:include tag and the namespace attribute are
+removed from the resulting XML document.
+
+The first example illustrates an rcl:include tag that replaces itself with
+the resource representation returned by the request.
+The following template:
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<h1>Header</h1>
+<rcl:include>
+<rcl:identifier>res:/resource/detail.xml</rcl:identifier>
+</rcl:include>
+</div>{/xml}
+
+requests the resource ''res:/resource/detail.xml'', which contains:
+
+{xml}<p>This is detail information</p>{/xml}
+
+After the requested resource representation replaces the rcl:include tag
+and the namespace attribute is removed,
+the result is the following XML document:
+
+{xml}<div>
+<h1>Header</h1>
+<p>This is detail information</p></div>{/xml}
+
+The next example illustrates the use of the rcl:xpath
+tag to specify the node replaced by the requested representation.
+The following template:
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<h1>Header</h1>
+<p>default text</p>
+<p>default text</p>
+<rcl:include>
+<rcl:xpath>../p[2]</rcl:xpath>
+<rcl:identifier>res:/resource/detail.xml</rcl:identifier>
+</rcl:include>
+</div>{/xml}
+
+will replace the second ''p'' element with the returned resource representation,
+resulting in the following XML document:
+
+{xml}<div>
+<h1>Header</h1>
+<p>default text</p>
+<p>This is detail information</p></div>{/xml}
+
+If the request specifies the representation class
+{javadoc}java.lang.String{/javadoc}
+then the replacement operates on the content
+of the specified node and not the node itself.
+A {javadocclass}java.lang.String{/javadocclass}
+representation may also be used to replace the value of attributes.
+
+The next example requests a text resource and uses it to include
+a copyright notice:
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<h1>Header</h1>
+<p>default text</p>
+<p>default text</p>
+<span class="copyright"><rcl:include>
+<rcl:identifier>res:/resource/copyright.txt</rcl:identifier>
+<rcl:representation>java.lang.String</rcl:representation>
+</rcl:include></span>
+</div>{/xml}
+
+
+Arguments are added to the request by including a child ''rcl:argument''
+element for each argument.
+The value of the rcl:argument element is either a resource identifier or an in-line, XML fragment.
+The following example illustrates a request for the service "myServiceId".
+The service is called with the argument ''name'' set to an XML literal value,
+the argument ''config'' set to a resource identifier
+and the argument ''path'' is set to the argument named ''path'' as supplied to the executing XRL runtime.
+
+{xml}<rcl:include xmlns:rcl="http://netkernel.org/rcl">
+<rcl:identifier>meta:myServiceId</rcl:identifier>
+<rcl:argument name="path">arg:path</rcl:argument>
+<rcl:argument name="config">res:/etc/serviceConfig.xml</rcl:argument>
+<rcl:argument name="name">
+<literal>abc</literal>
+</rcl:argument>
+</rcl:include>{/xml}
+
+A compact form of rcl:include uses attributes to specify the
+request identifier, representation type and arguments.
+While convenient, arguments in this form may not include literal XML documents.
+Notice the naming convention on ''rcl:argument-'' attributes:
+the name of the argument is appended to the base attribute name of "argument-".
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+	<rcl:include identifier="meta:myServiceId" argument-path="arg:path" argument-config="res:/etc/serviceConfig.xml" />
+</div>{/xml}
+
+Finally, XRL include processing may be specified within an arbitrary XML element
+to replace text values.
+In this form the attribute rcl:include specifies the name of an attribute
+to be processed.
+The value of the named attribute is interpreted as a resource identifier,
+the resource is request with the representation type
+{javadocclass}java.lang.String{/javadocclass}
+and the identifier is replaced by the returned resource representation.
+For example, the following template:
+
+{xml}<div  xmlns:rcl="http://netkernel.org/rcl">
+<span class="res:/resource/copyright-css-style.txt" rcl:include="class">Copyright (c) 1060 Research, Ltd</span>
+</div>{/xml}
+
+will result in the following XML document:
+
+{xml}
+<div>
+<span class="copyright" >Copyright (c) 1060 Research, Ltd</span>
+</div>{/xml}
+
+If the rcl:include tag value is ''text'' then the text value of the tag itself
+is interpreted as a resource identifier  and is replaced by the
+returned representation.
+For example, the following template:
+
+{xml}<div  xmlns:rcl="http://netkernel.org/rcl">
+<span class="copyright" rcl:include="text">res:/resources/copyright.txt</span>
+</div>{/xml}
+
+will result in the following XML document:
+
+{xml}
+<div>
+<span class="copyright" >Copyright (c) 1060 Research, Ltd</span>
+</div>{/xml}
+
+

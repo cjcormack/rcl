@@ -1,0 +1,10 @@
+<div xmlns:rcl="http://netkernelroc.org/rcl">
+
+  <rcl:if rcl:request="session:/file">
+
+  </rcl:if>
+  <rcl:else>
+
+  </rcl:else>
+
+</div>

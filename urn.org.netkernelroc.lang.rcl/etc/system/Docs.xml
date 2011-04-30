@@ -14,10 +14,16 @@
     <uri>res:/org/netkernelroc/lang/rcl/doc/overview.txt</uri>
   </doc>
   <doc>
-    <id>doc:lang:rcl:fn(x)</id>
-    <title>FN(x)</title>
-    <desc>A description of a particular function</desc>
-    <uri>res:/org/netkernelroc/lang/rcl/doc/fn.txt</uri>
+    <id>doc:lang:rcl:include</id>
+    <title>rcl:include</title>
+    <desc>The RCL include function</desc>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/include.txt</uri>
+  </doc>
+  <doc>
+    <id>doc:lang:rcl:if</id>
+    <title>rcl:if</title>
+    <desc>The RCL if function</desc>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/if.txt</uri>
   </doc>
 
 
