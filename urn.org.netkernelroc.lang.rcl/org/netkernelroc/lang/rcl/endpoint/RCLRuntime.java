@@ -4,12 +4,12 @@ import org.netkernel.layer0.nkf.*;
 import org.netkernel.layer0.util.RequestBuilder;
 import org.netkernel.layer0.util.XMLReadable;
 import org.netkernel.layer0.util.XMLUtils;
-import org.netkernel.layer0.util.XPath;
 import org.netkernel.module.standard.endpoint.StandardAccessorImpl;
 import org.netkernel.util.Utils;
 import org.w3c.dom.*;
 
 import javax.xml.parsers.ParserConfigurationException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -58,7 +58,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
   private void processTemplate(Element documentElement, INKFRequestContext context, boolean tolerant) throws Exception
     {
-    String rclns = documentElement.getAttribute("xmlns:xrl");
+    String rclns = documentElement.getAttribute("xmlns:rcl");
     // Remove the namespace attribute from the processed node
     if (rclns.length() > 0)
       {
@@ -68,7 +68,6 @@ public class RCLRuntime extends StandardAccessorImpl
     Element e = XMLUtils.getFirstChildElement(documentElement);
     while (e != null)
       {
-      Element next = XMLUtils.getNextSiblingElement(e);
       String ns = e.getNamespaceURI();
       if (ns != null && ns.equals(RCL_NS))
         {
@@ -77,10 +76,6 @@ public class RCLRuntime extends StandardAccessorImpl
           {
           processInclude(e, context, tolerant);
           }
-//        else if (name.equals("include-children"))
-//          { //TODO rsk do you really want this - what is the use case?
-//          processInclude(e, context, tolerant);
-//          }
         else if (name.equals("resolve"))
           {
 //          processResolve(e, context, tolerant);
@@ -88,6 +83,10 @@ public class RCLRuntime extends StandardAccessorImpl
         else if (name.equals("eval"))
           {
 //          processEval(e, context, tolerant);
+          }
+        else
+          {
+          exceptionHandler(context, tolerant, "EXP_PROCESSING", "MSG_UNSUPPORTED_TAG", documentElement, null, e.getNodeName());
           }
         }
       else
@@ -104,87 +103,136 @@ public class RCLRuntime extends StandardAccessorImpl
           }
         processTemplate(e, context, tolerant);
         }
-      e = next;
+      e = XMLUtils.getNextSiblingElement(e);
       }
 
 
     }
 
   /**
-   * Called when an rcl:include tag is discovered in the template
+   * Called when an rcl:include tag is discovered in the template.
+   *
+   * @param includeElement The DOM includeElement that is the rcl:include
+   * @param context The request context
+   * @param tolerant Indicates if processing should be tolerant of errors.
    *
    */
-  private void processInclude(Element element, INKFRequestContext context, boolean tolerant) throws Exception
+  private ArrayList<Element> processInclude(Element includeElement, INKFRequestContext context, boolean tolerant) throws Exception
     {
-    String target = null;
+    ArrayList<Element> elementsToInclude = null;
+    ArrayList<Element> elementsFromInclude;
+    String target = "include";
+
     try
       {
-      INKFRequest request;
-      Element toReplace = element;
+      // Build the list of elements that are the set of included "replacement" elements
+      NodeList children = includeElement.getChildNodes();
+      elementsToInclude = new ArrayList<Element>(children.getLength());
 
-      boolean isInline = XMLUtils.getChildElementNamed(element, "xpath") == null;
-      if (isInline)
+      Element element = XMLUtils.getFirstChildElement(includeElement);
+      while(element != null)
         {
-        Element requestElement = XMLUtils.getChildElementNamed(element, "request");
-        XMLReadable r = new XMLReadable(requestElement);
-        request = buildRequest(r, context);
-
-//        if (element.hasAttribute("request"))
-//          {
-//          target = element.getAttribute("identifier");
-//          request = context.createRequest(target);
-//          }
-//        else
-//          {
-//          exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_NO_BASE_OR_TARGET", element, null, target);
-//          return;
-//          }
-        processArgumentAttributes(request, element);
-        }
-      else
-        {
-        XMLReadable r = new XMLReadable(element);
-        request = buildRequest(r, context);
-
-        String xpath = r.getTrimText("xrl:xpath");
-        if (xpath.length() > 0)
+        String ns = element.getNamespaceURI();
+        if (ns != null && ns.equals(RCL_NS))
           {
-          List<Node> nodes = XPath.eval(xpath, element);
-          if (nodes.size() == 1 && nodes.get(0) instanceof Element)
+          String name = element.getLocalName();
+          if ("request".equals(name))
             {
-            toReplace = (Element) nodes.get(0);
+            Element newElement = processRequest(element, context);
+            elementsToInclude.add((Element)includeElement.getOwnerDocument().importNode(newElement, true));
+            }
+          else if ("include".equals(name))
+            {
+            elementsFromInclude = processInclude(element, context, tolerant);
+            elementsToInclude.addAll(elementsFromInclude);
+            }
+          else if ("xpath".equals(name))
+            {
+            System.out.println("We don't handle xpath yet.");
             }
           else
             {
-            exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_BAD_XPATH", element, null, target);
+            exceptionHandler(context, tolerant, "EXP_INCLUDE", "MSG_UNSUPPORTED_TAG", includeElement, null, target);
             }
           }
+        else
+          {
+          processTemplate(element, context, tolerant);
+          elementsToInclude.add(element);
+          }
+        element = XMLUtils.getNextSiblingElement(element);
         }
 
-      request.setRepresentationClass(Node.class);
-      Node n = (Node) context.issueRequest(request);
-      if (n == null)
+      Element toReplace = includeElement;
+      Node owningNode = toReplace.getParentNode();
+
+      Node n = owningNode.getFirstChild();
+      while(n != toReplace) {
+        n = n.getNextSibling();
+      }
+
+      // Insert all of the include elements before the replace target
+      for (int i = 0; i < elementsToInclude.size(); i++)
         {
-        exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_NULL", element, null, target);
-        return;
+        owningNode.insertBefore(elementsToInclude.get(i), n);
         }
-      else if (n instanceof Document)
-        {
-        n = ((Document) n).getDocumentElement();
-        }
-      Element frag = (Element) element.getOwnerDocument().importNode(n, true);
-      toReplace.getParentNode().replaceChild(frag, toReplace);
-      if (toReplace != element)
-        {
-        element.getParentNode().removeChild(element);
-        }
-      processTemplate(frag, context, tolerant);
+
+      toReplace.getParentNode().removeChild(toReplace);
       }
     catch (Exception e)
       {
-      exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_EVAL", element, e, target);
+      e.printStackTrace();
+//      exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_EVAL", includeElement, e, target);
       }
+    return elementsToInclude;
     }
+
+
+      // Without an XPath the only option is to replace the rcl:include includeElement
+//      boolean replaceInclude = XMLUtils.getChildElementNamed(includeElement, "xpath") == null;
+//      if (replaceInclude)
+//        {
+//        Element requestElement = XMLUtils.getChildElementNamed(includeElement, "request");
+//        XMLReadable readableDOM = new XMLReadable(requestElement);
+//        request = buildRequest(readableDOM, context);
+//        processArgumentAttributes(request, includeElement);
+//        }
+//      else
+//        {
+        // Not supporting rcl:xpath right now
+//        XMLReadable readableDOM = new XMLReadable(includeElement);
+//        request = buildRequest(readableDOM, context);
+//
+//        String xpath = readableDOM.getTrimText("xrl:xpath");
+//        if (xpath.length() > 0)
+//          {
+//          List<Node> nodes = XPath.eval(xpath, includeElement);
+//          if (nodes.size() == 1 && nodes.get(0) instanceof Element)
+//            {
+//            toReplace = (Element) nodes.get(0);
+//            }
+//          else
+//            {
+//            exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_BAD_XPATH", includeElement, null, target);
+//            }
+//          }
+//        }
+
+//      request.setRepresentationClass(Node.class);
+//      Node n = (Node) context.issueRequest(request);
+//      if (n == null)
+//        {
+//        exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_NULL", includeElement, null, target);
+//        return;
+//        }
+//      else if (n instanceof Document)
+//        {
+//        n = ((Document) n).getDocumentElement();
+//        }
+
+
+
+
 
   private void exceptionHandler(INKFRequestContext aHelper, boolean tolerant, String aException, String aMessage, Node aElement, Exception e, String target) throws Exception
     {
@@ -200,6 +248,32 @@ public class RCLRuntime extends StandardAccessorImpl
       {
       throw aHelper.createFormattedException(aException, aMessage, XMLUtils.getPathFor(aElement), e, target);
       }
+    }
+
+
+
+  private Element processRequest(Element requestElement, INKFRequestContext context) throws Exception
+    {
+    INKFRequest request;
+    XMLReadable readableDOM = new XMLReadable(requestElement);
+
+    request = buildRequest(readableDOM, context);
+    // Not supporting attribute processing now
+    // processArgumentAttributes(request, includeElement);
+    request.setRepresentationClass(Node.class);
+    Node n = (Node) context.issueRequest(request);
+    if (n == null)
+      {
+      // Do some sort of exception processing
+      // exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_NULL", includeElement, null, target);
+      }
+    else if (n instanceof Document)
+      {
+      n = ((Document) n).getDocumentElement();
+      }
+
+
+    return (Element)n;
     }
 
   /**
@@ -219,7 +293,7 @@ public class RCLRuntime extends StandardAccessorImpl
     Element idEl = d.createElement("identifier");
     XMLUtils.setText(idEl, identifier);
     docEl.appendChild(idEl);
-    List<Element> arguments = (List<Element>) (List) aReadable.getNodes("xrl:argument");
+    List<Element> arguments = (List<Element>) (List) aReadable.getNodes("rcl:argument");
     for (Element argument : arguments)
       {
       Element argEl = d.createElement("argument");
@@ -241,7 +315,7 @@ public class RCLRuntime extends StandardAccessorImpl
     return req;
     }
 
-
+  // We are not doing this in RCL (yet?)
   private void processArgumentAttributes(INKFRequest aReq, Element aElement) throws NKFException
     {
     NamedNodeMap nnm = aElement.getAttributes();

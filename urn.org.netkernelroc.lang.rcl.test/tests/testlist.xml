@@ -4,27 +4,211 @@
   <test name="Simple template processing">
     <request>
       <identifier>active:rcl</identifier>
-      <argument name="template">res:/resources/basic-template.xml</argument>
+      <argument name="template">
+        <literal type="xml">
+          <div>
+            <p>This is a template</p>
+          </div>
+        </literal>
+      </argument>
       <representation>org.w3c.dom.Document</representation>
     </request>
 
     <assert>
       <notNull/>
+      <xpath>/div</xpath>
       <xpath>/div/p</xpath>
+      <xpath>/div/p/text()='This is a template'</xpath>
     </assert>
   </test>
 
-  <test name="Simple include processing">
+  <test name="rcl:include with one XML child">
     <request>
       <identifier>active:rcl</identifier>
-      <argument name="template">res:/resources/template-with-simple-include.xml</argument>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <p>This is a template</p>
+            <rcl:include>
+              <div>Simple content.</div>
+            </rcl:include>
+            <p>Stuff at the end.</p>
+          </div>
+        </literal>
+      </argument>
       <representation>org.w3c.dom.Document</representation>
     </request>
 
     <assert>
       <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div</xpath>
       <xpath>/div/div</xpath>
+      <xpath>/div/div/text()='Simple content.'</xpath>
     </assert>
   </test>
 
+  <test name="rcl:include with two XML children">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <p>This is a template</p>
+            <rcl:include>
+              <div>Simple content.</div>
+              <div>More content.</div>
+            </rcl:include>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div</xpath>
+      <xpath>/div/div</xpath>
+      <xpath>/div/div[1]/text()='Simple content.'</xpath>
+      <xpath>/div/div[2]/text()='More content.'</xpath>
+    </assert>
+  </test>
+
+  <test name="rcl:include with one rcl:request child">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <p>This is a template</p>
+            <rcl:include>
+              <rcl:request>
+                <rcl:identifier>res:/resources/simple-content.xml</rcl:identifier>
+              </rcl:request>
+            </rcl:include>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div</xpath>
+      <xpath>/div/div</xpath>
+      <xpath>/div/div/text()='Simple content.'</xpath>
+    </assert>
+  </test>
+
+  <test name="rcl:include with one rcl:request and one XML child">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <p>This is a template</p>
+            <rcl:include>
+              <p>Include this paragraph</p>
+              <rcl:request>
+                <rcl:identifier>res:/resources/simple-content.xml</rcl:identifier>
+              </rcl:request>
+            </rcl:include>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div</xpath>
+      <xpath>/div/div</xpath>
+      <xpath>/div/p[1]/text()='This is a template'</xpath>
+      <xpath>/div/p[2]/text()='Include this paragraph'</xpath>
+      <xpath>/div/div/text()='Simple content.'</xpath>
+    </assert>
+  </test>
+
+  <test name="Simple recursion - one include within another">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:include>
+              <p>Top level before</p>
+              <rcl:include>
+                <p>Nested include paragraph</p>
+                <p>Nested include paragraph</p>
+                <p>Nested include paragraph</p>
+              </rcl:include>
+            </rcl:include>
+            <p>Top level after</p>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div</xpath>
+      <xpath>/div/p[1]/text()='Top level before'</xpath>
+      <xpath>/div/p[2]/text()='Nested include paragraph'</xpath>
+      <xpath>/div/p[3]/text()='Nested include paragraph'</xpath>
+      <xpath>/div/p[4]/text()='Nested include paragraph'</xpath>
+      <xpath>/div/p[5]/text()='Top level after'</xpath>
+    </assert>
+  </test>
+
+  <test name="Nested include">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <div>
+              <div>
+                <rcl:include>
+                  <p>Include this paragraph</p>
+                </rcl:include>
+              </div>
+            </div>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div/div/div/p</xpath>
+      <xpath>/div/div/div/p/text()='Include this paragraph'</xpath>
+    </assert>
+  </test>
+
+  <test name="Unsupported Tab">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:unsupported>
+              <p>Include this paragraph</p>
+            </rcl:unsupported>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+    </assert>
+  </test>
 </testlist>
