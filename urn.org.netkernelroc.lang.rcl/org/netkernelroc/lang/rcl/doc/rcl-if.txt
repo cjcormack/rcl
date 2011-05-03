@@ -1,17 +1,44 @@
 
-=rcl:include=
+=rcl:if=
 
-The ''rcl:include'' tag is used to include a resource within an XML document.
+The ''rcl:if'' tag is used to perform conditional processing within an XML document.
 
-The ''rcl:include'' tag must include a ''rcl:request'' tag which specifies a
+The ''rcl:if'' tag must include a ''rcl:request'' tag which specifies a
 [[doc:logicalreference:module:standard:logical:declarative:request:syntax|declarative request]].
-When the request is processed, the returned representation is placed in
+When the request is processed the representation class ''java.lang.Boolean'' is
+specified.
+Depending on the returned representation value one of two tags,
+''rcl:true'' or ''rcl:false'' are...
+
+, the returned representation is placed in
 the XML document.
 If the optional ''rcl:xpath'' tag is present it specifies the location within the
 XML document where the replacement occurs. If the ''rcl:xpath'' tag is
 absent then the enclosing ''rcl:include'' tag is the replacement target.
 After processing, the rcl:include tag and the namespace attribute are
 removed from the resulting XML document.
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<rcl:if>
+<rcl:request>
+<rcl:identifier>res:/resource/detail.xml</rcl:identifier>
+</rcl:request>
+<rcl:true>
+<rcl:include>
+<rcl:request>
+<rcl:identifier>session:/filename</rcl:identifier>
+</rcl:request>
+</rcl:include>
+</rcl:true>
+<rcl:false>
+  <div>something else</div>
+</rcl:false>
+</rcl:if>
+</div>{/xml}
+
+
+=== No Refactoring Past This Point ===
+
 
 Note: the ''rcl:xpath'' tag is not yet implemented.
 

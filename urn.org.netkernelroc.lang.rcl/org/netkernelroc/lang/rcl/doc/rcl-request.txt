@@ -1,0 +1,53 @@
+
+=rcl:request=
+
+The ''rcl:request'' tag is used to define a
+[[doc:logicalreference:module:standard:logical:declarative:request:syntax|declarative request]].
+
+When the RCL processing service encounters a ''rcl:request'' tag it creates the specified
+request, issues the request into the containing space and then handles the returned representation
+in a manner that depends on the context such as
+[[doc:lang:rcl:include|rcl:include]], [[doc:lang:rcl:if|rcl:if]] or
+[[doc:lang:rcl:select|rcl:select]].
+
+=Syntax=
+
+A ''rcl:request'' element can contain the following elements which mirror the
+definition of the standard declarative request.
+
+==identifier==
+
+The request ''identifier'' may be either a resource identifier:
+
+{literal}
+<rcl:request>
+  <rcl:identifier>res:/resources/pages/menu/sidebarmenu</rcl:identifier>
+</rcl:request>
+{/literal}
+
+or, with a meta: prefex, a logical endpoint identifier:
+
+
+{literal}
+<rcl:request>
+  <rcl:identifier>meta:resource:menu</rcl:identifier>
+</rcl:request>
+{/literal}
+
+
+
+{ignore}
+
+=== Return Types ===
+
+The return type of the request determines how the processing happens...
+
+org.w3c.dom.Document
+
+java.lang.String
+
+xxx.IHDSNode
+
+java.lang.Boolean?
+
+        {/ignore}

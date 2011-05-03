@@ -13,8 +13,10 @@
     <toc>
       <item id="doc:lang:rcl:title">
         <item id="doc:lang:rcl:overview"/>
+        <item id="doc:lang:rcl:request"/>
         <item id="doc:lang:rcl:include"/>
-        <!--item id="doc:lang:rcl:if"/-->
+        <item id="doc:lang:rcl:select"/>
+        <item id="doc:lang:rcl:if"/>
       </item>
     </toc>
   </book>

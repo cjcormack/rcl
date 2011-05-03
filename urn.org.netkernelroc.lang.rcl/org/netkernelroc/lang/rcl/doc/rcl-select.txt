@@ -1,11 +1,29 @@
 
-=rcl:if=
+=rcl:select=
 
 
 
 
 
-The ''rcl:if'' tag is used to include a resource within an XML document.
+The ''rcl:select'' tag is used to perform conditional processing within an XML document.
+
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<rcl:select>
+<rcl:request>
+<rcl:identifier>res:/resource/detail.xml</rcl:identifier>
+</rcl:request>
+<rcl:case asdf="">
+  <div>This stuff</div>
+</rcl:case>
+<rcl:otherwise>
+  <div>something else</div>
+</rcl:otherwise>
+</rcl:select>
+</div>{/xml}
+
+
+=== No Refactoring Past This Point ===
 
 The ''rcl:include'' tag must include a ''rcl:request'' tag which specifies a
 [[doc:logicalreference:module:standard:logical:declarative:request:syntax|declarative request]].

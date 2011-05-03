@@ -14,16 +14,28 @@
     <uri>res:/org/netkernelroc/lang/rcl/doc/overview.txt</uri>
   </doc>
   <doc>
+    <id>doc:lang:rcl:request</id>
+    <title>rcl:request</title>
+    <desc>The RCL request</desc>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/rcl-request.txt</uri>
+  </doc>
+  <doc>
     <id>doc:lang:rcl:include</id>
     <title>rcl:include</title>
     <desc>The RCL include function</desc>
-    <uri>res:/org/netkernelroc/lang/rcl/doc/include.txt</uri>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/rcl-include.txt</uri>
+  </doc>
+  <doc>
+    <id>doc:lang:rcl:select</id>
+    <title>rcl:select</title>
+    <desc>The RCL select function</desc>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/rcl-select.txt</uri>
   </doc>
   <doc>
     <id>doc:lang:rcl:if</id>
     <title>rcl:if</title>
     <desc>The RCL if function</desc>
-    <uri>res:/org/netkernelroc/lang/rcl/doc/if.txt</uri>
+    <uri>res:/org/netkernelroc/lang/rcl/doc/rcl-if.txt</uri>
   </doc>
 
 

@@ -1,0 +1,109 @@
+
+=rcl:include=
+
+The ''rcl:include'' tag is used to include a resource within an XML document.
+
+When the RCL processing service encounters a ''rcl:include'' tag it examines
+the child elements to determine how to process the inclusion.
+The target of the include operation is either the ''rcl:include'' tag
+itself or, if a ''rcl:xpath'' tag is a child element, the target is
+specified by the XPath expression.
+In either case, the ''rcl:include'' tag is removed from the XML document.
+
+=Syntax=
+
+The ''rcl:include'' tag is in the ''http://netkernelroc.org/rcl'' namespace.
+In its simplest form, it contains ony non-namespace elements:
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<rcl:include>
+<h3>Include This Section</h3>
+<p>This paragraph is included within the containing div element.</p>
+</rcl:include>
+</div>{/xml}
+
+The result of processing this ''rcl:include'' tag is:
+
+{xml}<div>
+<h3>Include This Section</h3>
+<p>This paragraph is included within the containing div element.</p>
+</div>{/xml}
+
+Notice that the ''rcl:include'' tag itself and all references to the RCL namespace
+are removed from the resulting document.
+
+==xpath==
+
+{authornote}Note: the ''rcl:xpath'' tag is not yet implemented.{/authornote}
+
+
+If the ''rcl:xpath'' tag is a child element it specifies the location of the
+include substitution.
+
+
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<rcl:include>
+<rcl:xpath></rcl:xpath>
+<h3>Include This Section</h3>
+<p>This paragraph is included within the containing div element.</p>
+</rcl:include>
+</div>{/xml}
+
+
+==request==
+
+The ''rcl:request'' child element specifies a request
+for a resource representation which, when returned, is added to
+the set of other XML child elements.
+After processing the ''rcl:request'' tag, the whole set of child
+elements if either included either
+inline or as specified by the optional ''rcl:xpath'' tag.
+
+Within the ''rcl:include'' tag it is permissble to have multiple
+''rcl:request'' tags.
+
+
+
+
+The first example illustrates a rcl:include tag replaced by the
+requested resource representation.
+The following template:
+
+{xml}<div xmlns:rcl="http://netkernel.org/rcl">
+<h1>Header</h1>
+<rcl:include>
+<rcl:request>
+<rcl:identifier>res:/resource/detail.xml</rcl:identifier>
+</rcl:request>
+</rcl:include>
+</div>{/xml}
+
+requests the resource ''res:/resource/detail.xml'' which contains:
+
+{xml}<p>This is detail information</p>{/xml}
+
+After the requested resource representation replaces the rcl:include tag
+and the namespace attribute is removed,
+the result is the following XML document:
+
+{xml}<div>
+<h1>Header</h1>
+<p>This is detail information</p></div>{/xml}
+
+{ignore}
+
+=== Return Types ===
+
+The return type of the request determines how the processing happens...
+
+org.w3c.dom.Document
+
+java.lang.String
+
+xxx.IHDSNode
+
+java.lang.Boolean?
+
+{/ignore}
+
