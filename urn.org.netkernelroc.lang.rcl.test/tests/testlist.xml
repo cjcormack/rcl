@@ -192,7 +192,96 @@
     </assert>
   </test>
 
-  <test name="Unsupported Tab">
+  <test name="Simple rcl:if with true response">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Response true</p>
+              </rcl:true>
+              <rcl:false>
+                <p>Response false</p>
+              </rcl:false>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div/p/text()='Response true'</xpath>
+    </assert>
+  </test>
+
+  <test name="Simple rcl:if with false response">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:false</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Response true</p>
+              </rcl:true>
+              <rcl:false>
+                <p>Response false</p>
+              </rcl:false>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div/p/text()='Response false'</xpath>
+    </assert>
+  </test>
+
+  <test name="rcl:if with nested rcl:include">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <rcl:include>
+                  <p>Included block</p>
+                </rcl:include>
+              </rcl:true>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div/p/text()='Included block'</xpath>
+    </assert>
+  </test>
+
+  <notest name="Unsupported Tab">
     <request>
       <identifier>active:rcl</identifier>
       <argument name="template">
@@ -210,5 +299,5 @@
     <assert>
       <notNull/>
     </assert>
-  </test>
+  </notest>
 </testlist>

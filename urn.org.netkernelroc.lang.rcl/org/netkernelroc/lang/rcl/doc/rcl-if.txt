@@ -8,63 +8,30 @@ The ''rcl:if'' tag must include a ''rcl:request'' tag which specifies a
 When the request is processed the representation class ''java.lang.Boolean'' is
 specified.
 Depending on the returned representation value one of two tags,
-''rcl:true'' or ''rcl:false'' are...
+''rcl:true'' or ''rcl:false'' are used as the replacement nodes for the
+whole ''rcl:if'' tag.
 
-, the returned representation is placed in
-the XML document.
-If the optional ''rcl:xpath'' tag is present it specifies the location within the
-XML document where the replacement occurs. If the ''rcl:xpath'' tag is
-absent then the enclosing ''rcl:include'' tag is the replacement target.
-After processing, the rcl:include tag and the namespace attribute are
-removed from the resulting XML document.
+For example,
 
 {xml}<div xmlns:rcl="http://netkernel.org/rcl">
 <rcl:if>
 <rcl:request>
-<rcl:identifier>res:/resource/detail.xml</rcl:identifier>
+<rcl:identifier>active:true</rcl:identifier>
 </rcl:request>
 <rcl:true>
-<rcl:include>
-<rcl:request>
-<rcl:identifier>session:/filename</rcl:identifier>
-</rcl:request>
-</rcl:include>
+<p>True</p>
 </rcl:true>
 <rcl:false>
-  <div>something else</div>
+  <p>False</p>
 </rcl:false>
 </rcl:if>
 </div>{/xml}
 
+results in:
 
-=== No Refactoring Past This Point ===
-
-
-Note: the ''rcl:xpath'' tag is not yet implemented.
-
-The first example illustrates a rcl:include tag replaced by the
-requested resource representation.
-The following template:
-
-{xml}<div xmlns:rcl="http://netkernel.org/rcl">
-<h1>Header</h1>
-<rcl:include>
-<rcl:request>
-<rcl:identifier>res:/resource/detail.xml</rcl:identifier>
-</rcl:request>
-</rcl:include>
-</div>{/xml}
-
-requests the resource ''res:/resource/detail.xml'' which contains:
-
-{xml}<p>This is detail information</p>{/xml}
-
-After the requested resource representation replaces the rcl:include tag
-and the namespace attribute is removed,
-the result is the following XML document:
-
-{xml}<div>
-<h1>Header</h1>
-<p>This is detail information</p></div>{/xml}
-
+{xml}
+<div>
+<p>True</p>
+</div>
+{/xml}
 

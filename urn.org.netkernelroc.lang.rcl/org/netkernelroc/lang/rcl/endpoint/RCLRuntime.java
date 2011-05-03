@@ -72,9 +72,13 @@ public class RCLRuntime extends StandardAccessorImpl
       if (ns != null && ns.equals(RCL_NS))
         {
         String name = e.getLocalName();
-        if (name.equals("include"))
+        if ("include".equals(name))
           {
           processInclude(e, context, tolerant);
+          }
+        else if ("if".equals(name))
+          {
+          processIf(e, context, tolerant);
           }
         else if (name.equals("resolve"))
           {
@@ -187,8 +191,114 @@ public class RCLRuntime extends StandardAccessorImpl
     return elementsToInclude;
     }
 
+  /**
+    * Called when an rcl:if tag is discovered in the template.
+    *
+    * @param ifElement The DOM includeElement that is the rcl:include
+    * @param context The request context
+    * @param tolerant Indicates if processing should be tolerant of errors.
+    *
+    */
+  protected void processIf(Element ifElement, INKFRequestContext context, boolean tolerant) throws Exception
+    {
+    ArrayList<Element> elementsToInclude = null;
 
-      // Without an XPath the only option is to replace the rcl:include includeElement
+    // TODO: Add better error checking of the form of the rcl:if structure
+
+    // Get the "if" node and optional "true" and "false" nodes
+    Element replacementNode = null;
+    Element eTrue = null;
+    Element eFalse = null;
+
+    boolean test = false;
+
+    try
+      {
+     // Find the nodes that comprise this structure
+      Element element = XMLUtils.getFirstChildElement(ifElement);
+      while(element != null)
+        {
+        String ns = element.getNamespaceURI();
+        if (ns != null && ns.equals(RCL_NS))
+          {
+          String name = element.getLocalName();
+          if ("request".equals(name))
+            {
+            Boolean response = processRequestForBoolean(element, context);
+            // TODO: Include robust Boolean type processing (such as issue a transrept request
+            // if the returned type is not Boolean.
+            test = response.booleanValue();
+            }
+          else if ("true".equals(name))
+            {
+            eTrue = element;
+            }
+          else if ("false".equals(name))
+            {
+            eFalse = element;
+            }
+          else
+            {
+            exceptionHandler(context, tolerant, "EXP_INCLUDE", "MSG_UNSUPPORTED_TAG", ifElement, null, name);
+            }
+          }
+        else
+          {
+          processTemplate(element, context, tolerant);
+          }
+        element = XMLUtils.getNextSiblingElement(element);
+        }
+
+      replacementNode = test ? eTrue : eFalse;
+      processTemplate(replacementNode, context, tolerant);
+
+
+
+      if (null == replacementNode)
+        {
+        // Missing true or false
+//        exceptionHandler(context, tolerant, "EXP_INCLUDE", "MSG_UNSUPPORTED_TAG", ifElement, null, name);
+        }
+      else
+        {
+
+        // Gather the replacements
+        Element e = XMLUtils.getFirstChildElement(replacementNode);
+        elementsToInclude = new ArrayList<Element>(10);
+        while(e != null)
+          {
+          processTemplate(e, context, tolerant);
+          elementsToInclude.add(e);
+          e = XMLUtils.getNextSiblingElement(e);
+          }
+        }
+
+      Element toReplace = ifElement;
+      Node owningNode = toReplace.getParentNode();
+
+      Node n = owningNode.getFirstChild();
+      while(n != toReplace) {
+        n = n.getNextSibling();
+      }
+
+      // Insert all of the include elements before the replace target
+      for (int i = 0; i < elementsToInclude.size(); i++)
+        {
+        owningNode.insertBefore(elementsToInclude.get(i), n);
+        }
+
+      toReplace.getParentNode().removeChild(toReplace);
+      }
+    catch (Exception e)
+      {
+      e.printStackTrace();
+//      exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_EVAL", includeElement, e, target);
+      }
+
+    }
+
+
+  // Without an XPath the only option is to replace the rcl:include includeElement
 //      boolean replaceInclude = XMLUtils.getChildElementNamed(includeElement, "xpath") == null;
 //      if (replaceInclude)
 //        {
@@ -271,9 +381,23 @@ public class RCLRuntime extends StandardAccessorImpl
       {
       n = ((Document) n).getDocumentElement();
       }
-
-
     return (Element)n;
+     }
+
+
+
+  // TODO: This is not elegant. Figure out a better way to have a forced Boolean request
+  // with error checking
+  private Boolean processRequestForBoolean(Element requestElement, INKFRequestContext context) throws Exception
+    {
+    INKFRequest request;
+    XMLReadable readableDOM = new XMLReadable(requestElement);
+
+    request = buildRequest(readableDOM, context);
+    request.setRepresentationClass(Boolean.class);
+    Boolean returnValue = (Boolean) context.issueRequest(request);
+
+    return returnValue;
     }
 
   /**

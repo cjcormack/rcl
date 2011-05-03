@@ -16,6 +16,19 @@
 
 
   <rootspace>
+
+    <endpoint>
+      <grammar>
+        <group>active:
+          <group name="type">
+            <regex>(true|false)</regex>
+          </group>
+        </group>
+      </grammar>
+      <class>org.netkernelroc.utility.test.TrueFalseAccessor</class>
+    </endpoint>
+
+
     <fileset>
       <regex>res:/etc/system/.*</regex>
     </fileset>

@@ -1,3 +1,10 @@
 = RCL =
 
-This is the title page
+The Resource Composition Language, RCL, is a service designed to aggregate resources
+into a single returned resource representation.
+
+=== License ===
+
+The RCL license will be an open-source license. The community will discuss the options
+and make a decision.
+
