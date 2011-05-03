@@ -250,21 +250,16 @@ public class RCLRuntime extends StandardAccessorImpl
         }
 
       replacementNode = test ? eTrue : eFalse;
-      processTemplate(replacementNode, context, tolerant);
+      boolean doReplace = (null != replacementNode);
 
 
-
-      if (null == replacementNode)
+      if (doReplace)
         {
-        // Missing true or false
-//        exceptionHandler(context, tolerant, "EXP_INCLUDE", "MSG_UNSUPPORTED_TAG", ifElement, null, name);
-        }
-      else
-        {
+        processTemplate(replacementNode, context, tolerant);
 
         // Gather the replacements
         Element e = XMLUtils.getFirstChildElement(replacementNode);
-        elementsToInclude = new ArrayList<Element>(10);
+        elementsToInclude = new ArrayList<Element>();
         while(e != null)
           {
           processTemplate(e, context, tolerant);
@@ -274,19 +269,24 @@ public class RCLRuntime extends StandardAccessorImpl
         }
 
       Element toReplace = ifElement;
-      Node owningNode = toReplace.getParentNode();
-
-      Node n = owningNode.getFirstChild();
-      while(n != toReplace) {
-        n = n.getNextSibling();
-      }
-
-      // Insert all of the include elements before the replace target
-      for (int i = 0; i < elementsToInclude.size(); i++)
+      if (doReplace)
         {
-        owningNode.insertBefore(elementsToInclude.get(i), n);
+        Node owningNode = toReplace.getParentNode();
+
+        Node n = owningNode.getFirstChild();
+        while (n != toReplace)
+          {
+          n = n.getNextSibling();
+          }
+
+        // Insert all of the include elements before the replace target
+        for (int i = 0; i < elementsToInclude.size(); i++)
+          {
+          owningNode.insertBefore(elementsToInclude.get(i), n);
+          }
         }
 
+      // We must remove the replacement target whether there was an actual replacement or not
       toReplace.getParentNode().removeChild(toReplace);
       }
     catch (Exception e)

@@ -41,6 +41,7 @@
 
     <assert>
       <notNull/>
+      <xpath>/div[count(namespace::*)=1]</xpath>
       <!-- How do I prove with XPath that the name space specification is removed? -->
       <xpath>/div</xpath>
       <xpath>/div/div</xpath>
@@ -222,6 +223,60 @@
     </assert>
   </test>
 
+  <test name="Simple rcl:if with only true response">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Response true</p>
+              </rcl:true>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <xpath>/div/p/text()='Response true'</xpath>
+    </assert>
+  </test>
+
+  <test name="Simple rcl:if with only missing rcl:true response">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:false>
+                <p>Response false</p>
+              </rcl:false>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div</xpath>
+      <xpath>/div[count(p)=0]</xpath>
+    </assert>
+  </test>
+
   <test name="Simple rcl:if with false response">
     <request>
       <identifier>active:rcl</identifier>
@@ -280,6 +335,152 @@
       <xpath>/div/p/text()='Included block'</xpath>
     </assert>
   </test>
+
+  <test name="Sequence of five rcl:if statements">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Response true</p>
+              </rcl:true>
+              <rcl:false>
+                <p>Response false</p>
+              </rcl:false>
+            </rcl:if>
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Response true</p>
+              </rcl:true>
+              <rcl:false>
+                <p>Response false</p>
+              </rcl:false>
+            </rcl:if>
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Response true</p>
+              </rcl:true>
+              <rcl:false>
+                <p>Response false</p>
+              </rcl:false>
+            </rcl:if>
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Response true</p>
+              </rcl:true>
+              <rcl:false>
+                <p>Response false</p>
+              </rcl:false>
+            </rcl:if>
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Response true</p>
+              </rcl:true>
+              <rcl:false>
+                <p>Response false</p>
+              </rcl:false>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <!-- How do I prove with XPath that the name space specification is removed? -->
+      <xpath>/div/p[1]/text()='Response true'</xpath>
+      <xpath>/div/p[2]/text()='Response true'</xpath>
+      <xpath>/div/p[3]/text()='Response true'</xpath>
+      <xpath>/div/p[4]/text()='Response true'</xpath>
+      <xpath>/div/p[5]/text()='Response true'</xpath>
+    </assert>
+  </test>
+
+  <test name="rcl:if in a sequence of p elements">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <p>First paragraph</p>
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Second paragraph</p>
+              </rcl:true>
+            </rcl:if>
+            <p>Third paragraph</p>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <xpath>/div/p[1]/text()='First paragraph'</xpath>
+      <xpath>/div/p[2]/text()='Second paragraph'</xpath>
+      <xpath>/div/p[3]/text()='Third paragraph'</xpath>
+    </assert>
+  </test>
+
+  <test name="Two rcl:if elements separated by a  p element">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>First paragraph</p>
+              </rcl:true>
+            </rcl:if>
+            <p>Middle paragraph</p>
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <p>Last paragraph</p>
+              </rcl:true>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+      <xpath>/div/p[1]/text()='First paragraph'</xpath>
+      <xpath>/div/p[2]/text()='Middle paragraph'</xpath>
+      <xpath>/div/p[3]/text()='Last paragraph'</xpath>
+    </assert>
+  </test>
+
 
   <notest name="Unsupported Tab">
     <request>

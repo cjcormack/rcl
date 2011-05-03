@@ -5,8 +5,9 @@ import org.netkernel.layer0.nkf.INKFResponse;
 import org.netkernel.module.standard.endpoint.StandardAccessorImpl;
 
 /**
- * Always returns a true or false Boolean depending on how it is called.
+ * TrueFalse accessor returns a Boolean true or false value depending on how it is called.
  *
+ * @author Randolph Kahle
  */
 public class TrueFalseAccessor extends StandardAccessorImpl
   {
