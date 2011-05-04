@@ -86,7 +86,7 @@ public class RCLRuntime extends StandardAccessorImpl
           {
           replacementNodes.addAll(processInclude(e, context, tolerant));
           }
-        else if ("if".equals(e.getLocalName()))
+        if ("if".equals(e.getLocalName()))
           {
           replacementNodes.addAll(processIf(e, context, tolerant));
           }
@@ -124,6 +124,10 @@ public class RCLRuntime extends StandardAccessorImpl
          if("include".equals(e.getLocalName()))
            {
            replacementNodes.addAll(processInclude(e, context,  tolerant));
+           }
+         if("if".equals(e.getLocalName()))
+           {
+           replacementNodes.addAll(processIf(e, context,  tolerant));
            }
          }
       else
@@ -213,6 +217,10 @@ public class RCLRuntime extends StandardAccessorImpl
          if("include".equals(e.getLocalName()))
            {
            replacementNodes.addAll(processInclude(e, context,  tolerant));
+           }
+         if("if".equals(e.getLocalName()))
+           {
+           replacementNodes.addAll(processIf(e, context,  tolerant));
            }
          }
        else
