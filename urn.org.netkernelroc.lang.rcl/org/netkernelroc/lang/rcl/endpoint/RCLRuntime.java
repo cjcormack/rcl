@@ -5,13 +5,11 @@ import nu.xom.Element;
 import nu.xom.Elements;
 import nu.xom.Node;
 import nu.xom.converters.DOMConverter;
-import org.netkernel.layer0.nkf.INKFLocale;
 import org.netkernel.layer0.nkf.INKFRequest;
 import org.netkernel.layer0.nkf.INKFRequestContext;
 import org.netkernel.layer0.nkf.INKFResponse;
 import org.netkernel.layer0.util.XMLUtils;
 import org.netkernel.module.standard.endpoint.StandardAccessorImpl;
-import org.netkernel.util.Utils;
 import org.w3c.dom.DOMImplementation;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -26,7 +24,6 @@ import java.util.ArrayList;
  */
 public class RCLRuntime extends StandardAccessorImpl
   {
-  private static final String RCL_NS = "http://netkernelroc.org/rcl";
 
   public RCLRuntime()
     {
@@ -111,14 +108,6 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  /**
-   * Called when an rcl:include tag is discovered in the template.
-   *
-   * @param includeElement The DOM includeElement that is the rcl:include
-   * @param context The request context
-   * @param tolerant Indicates if processing should be tolerant of errors.
-   *
-   */
   protected ArrayList<Node> processInclude(Element includeElement, INKFRequestContext context, boolean tolerant) throws Exception
     {
     ArrayList<Node> replacementNodes = new ArrayList<Node>();
@@ -168,22 +157,10 @@ public class RCLRuntime extends StandardAccessorImpl
     {
     INKFRequest request = buildRequest(requestElement, context);
     request.setRepresentationClass(java.lang.Boolean.class);
-    Boolean response = (Boolean)context.issueRequest(request);
-    return response.booleanValue();
+    return (Boolean)context.issueRequest(request);
     }
 
 
-
-
-    /**
-     * Build an NKF request object from an XML specification
-     *
-     * rcl:request
-     *   rcl:identifier
-     *   rcl:verb
-     *   rcl:argument
-     *   rcl:representation
-     */
 
     protected INKFRequest buildRequest(Element requestElement, INKFRequestContext context) throws Exception
       {
@@ -289,10 +266,6 @@ public class RCLRuntime extends StandardAccessorImpl
     }
 
 
-  //========== THIS IS THE OLD CODE ==========
-
-
-
 
   private org.w3c.dom.Document getMutableClone(org.w3c.dom.Node node) throws ParserConfigurationException
     {
@@ -310,21 +283,21 @@ public class RCLRuntime extends StandardAccessorImpl
     }
 
 
-  private void exceptionHandler(INKFRequestContext aHelper, boolean tolerant, String aException, String aMessage, org.w3c.dom.Node aElement, Exception e, String target) throws Exception
-    {
-    if (tolerant)
-      {
-      aHelper.logFormatted(INKFLocale.LEVEL_WARNING, aMessage, XMLUtils.getPathFor(aElement), e, target);
-      if (e != null)
-        {
-        aHelper.logRaw(INKFLocale.LEVEL_WARNING, Utils.throwableToString(e));
-        }
-      }
-    else
-      {
-      throw aHelper.createFormattedException(aException, aMessage, XMLUtils.getPathFor(aElement), e, target);
-      }
-    }
+//  private void exceptionHandler(INKFRequestContext aHelper, boolean tolerant, String aException, String aMessage, org.w3c.dom.Node aElement, Exception e, String target) throws Exception
+//    {
+//    if (tolerant)
+//      {
+//      aHelper.logFormatted(INKFLocale.LEVEL_WARNING, aMessage, XMLUtils.getPathFor(aElement), e, target);
+//      if (e != null)
+//        {
+//        aHelper.logRaw(INKFLocale.LEVEL_WARNING, Utils.throwableToString(e));
+//        }
+//      }
+//    else
+//      {
+//      throw aHelper.createFormattedException(aException, aMessage, XMLUtils.getPathFor(aElement), e, target);
+//      }
+//    }
 
 
 
