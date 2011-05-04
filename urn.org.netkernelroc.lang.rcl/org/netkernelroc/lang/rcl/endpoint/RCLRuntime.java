@@ -81,7 +81,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
   protected void processTemplate(final Element element, final INKFRequestContext context, boolean tolerant)   throws NKFException, ParserConfigurationException
     {
-    ArrayList<Node> replacementNodes = new ArrayList<Node>();
+    List<Node> replacementNodes = new ArrayList<Node>();
 
     element.removeNamespaceDeclaration(NS_RCL);
 
@@ -118,7 +118,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
   protected List<Node> processInclude(final Element includeElement, final INKFRequestContext context, boolean tolerant) throws NKFException, ParserConfigurationException
     {
-    ArrayList<Node> replacementNodes = new ArrayList<Node>();
+    List<Node> replacementNodes = new ArrayList<Node>();
 
     List<Element> childElements = stripAndReturnChildElements(includeElement, context, tolerant);
 
@@ -197,7 +197,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
   protected List<Node> processIf(final Element ifElement, final INKFRequestContext context, boolean tolerant)   throws NKFException, ParserConfigurationException
     {
-    ArrayList<Node> replacementNodes = new ArrayList<Node>();
+    List<Node> replacementNodes = new ArrayList<Node>();
     boolean test = false;
 
     List<Element> childElements = stripAndReturnChildElements(ifElement, context, tolerant);
@@ -244,7 +244,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
   protected List<Node> processIfTrueFalse(final Element trueFalseElement, final INKFRequestContext context, boolean tolerant)  throws NKFException, ParserConfigurationException
     {
-    ArrayList<Node> replacementNodes = new ArrayList<Node>();
+    List<Node> replacementNodes = new ArrayList<Node>();
 
     List<Element> childElements = stripAndReturnChildElements(trueFalseElement, context, tolerant);
 
@@ -272,7 +272,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
   protected List<Element> stripAndReturnChildElements(final Element element, final INKFRequestContext context, boolean tolerant ) throws NKFException, ParserConfigurationException
     {
-    ArrayList<Element> childElements = new ArrayList<Element>();
+    List<Element> childElements = new ArrayList<Element>();
     Elements elements = element.getChildElements();
     for (int i=0; i<elements.size(); i++)
       {
