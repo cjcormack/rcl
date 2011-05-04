@@ -82,12 +82,11 @@ public class RCLRuntime extends StandardAccessorImpl
       {
       if( e.getNamespaceURI("rcl")!= null)
         {
-        String name = e.getLocalName();
-        if ("include".equals(name))
+        if ("include".equals(e.getLocalName()))
           {
           replacementNodes.addAll(processInclude(e, context, tolerant));
           }
-        else if ("if".equals(name))
+        else if ("if".equals(e.getLocalName()))
           {
           replacementNodes.addAll(processIf(e, context, tolerant));
           }
@@ -118,12 +117,11 @@ public class RCLRuntime extends StandardAccessorImpl
       {
       if( e.getNamespaceURI("rcl")!= null)
          {
-         String name = e.getLocalName();
-         if ("request".equals(name))
+         if ("request".equals(e.getLocalName()))
            {
            replacementNodes.add(processRequest(e, context).copy());
            }
-         if("include".equals(name))
+         if("include".equals(e.getLocalName()))
            {
            replacementNodes.addAll(processInclude(e, context,  tolerant));
            }
@@ -212,7 +210,10 @@ public class RCLRuntime extends StandardAccessorImpl
            {
            replacementNodes.addAll(processIfTrueFalse(e, context, tolerant));
            }
-         // We also need if and include here...
+         if("include".equals(e.getLocalName()))
+           {
+           replacementNodes.addAll(processInclude(e, context,  tolerant));
+           }
          }
        else
          {
@@ -234,8 +235,14 @@ public class RCLRuntime extends StandardAccessorImpl
       {
       if (e.getNamespaceURI("rcl")!=null)
         {
-        // For now we will ignore rcl: sub-elements
-        // We also need if and include here...
+        if("include".equals(e.getLocalName()))
+          {
+          replacementNodes.addAll(processInclude(e, context,  tolerant));
+          }
+        if("if".equals(e.getLocalName()))
+          {
+          replacementNodes.addAll(processIf(e, context,  tolerant));
+          }
         }
       else
         {
