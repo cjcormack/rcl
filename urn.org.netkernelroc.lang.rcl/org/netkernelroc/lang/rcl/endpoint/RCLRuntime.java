@@ -1,16 +1,21 @@
 package org.netkernelroc.lang.rcl.endpoint;
 
-import org.netkernel.layer0.nkf.*;
-import org.netkernel.layer0.util.RequestBuilder;
-import org.netkernel.layer0.util.XMLReadable;
+import nu.xom.converters.DOMConverter;
+import org.netkernel.layer0.nkf.INKFLocale;
+import org.netkernel.layer0.nkf.INKFRequest;
+import org.netkernel.layer0.nkf.INKFRequestContext;
+import org.netkernel.layer0.nkf.INKFResponse;
 import org.netkernel.layer0.util.XMLUtils;
 import org.netkernel.module.standard.endpoint.StandardAccessorImpl;
 import org.netkernel.util.Utils;
-import org.w3c.dom.*;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * RCL Runtime endpoint
@@ -20,7 +25,6 @@ import java.util.List;
 public class RCLRuntime extends StandardAccessorImpl
   {
   private static final String RCL_NS = "http://netkernelroc.org/rcl";
-  private static final String ARGUMENT_ATT = "argument-";
 
   public RCLRuntime()
     {
@@ -34,12 +38,23 @@ public class RCLRuntime extends StandardAccessorImpl
     String mimeType = context.getThisRequest().getArgumentValue("mimeType");
 
     Node templateNode = context.source("arg:template", Node.class);
-
     // Make a copy so we don't change an immutable resource representation
     Document template = getMutableClone(templateNode);
-    processTemplate(template.getDocumentElement(), context, tolerant);
 
-    INKFResponse response = context.createResponseFrom(template);
+    nu.xom.Document document = DOMConverter.convert(template);
+    nu.xom.Element element = document.getRootElement();
+
+
+    processTemplate(element, context, tolerant);
+
+    // Convert back!!
+    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    factory.setNamespaceAware(true);
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    DOMImplementation impl = builder.getDOMImplementation();
+
+    org.w3c.dom.Document domdoc = DOMConverter.convert(element.getDocument(), impl );
+    INKFResponse response = context.createResponseFrom(domdoc);
 
     if (mimeType != null)
       {
@@ -54,64 +69,79 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  //========== Private ==========
+  //========== Protected ==========
 
-  private void processTemplate(Element documentElement, INKFRequestContext context, boolean tolerant) throws Exception
+  protected void processTemplate(nu.xom.Element element, INKFRequestContext context, boolean tolerant) throws Exception
     {
-    String rclns = documentElement.getAttribute("xmlns:rcl");
-    // Remove the namespace attribute from the processed node
-    if (rclns.length() > 0)
-      {
-      documentElement.removeAttribute("xmlns:rcl");
-      }
+    element.removeNamespaceDeclaration("rcl");
 
-    Element e = XMLUtils.getFirstChildElement(documentElement);
-    while (e != null)
+    // Gather all of the children of the passed Element, put them
+    // into an array and remove them from the passed Element.
+    ArrayList<nu.xom.Element> childElements = new ArrayList<nu.xom.Element>();
+    nu.xom.Elements elements = element.getChildElements();
+    for (int i=0; i<elements.size(); i++)
       {
-      String ns = e.getNamespaceURI();
-      if (ns != null && ns.equals(RCL_NS))
+      nu.xom.Element ee = elements.get(i);
+      if (ee.getChildElements().size() > 0 && ee.getNamespaceURI("rcl")==null)
+        {
+        processTemplate(ee,context, tolerant);
+        }
+      childElements.add(ee);
+      }
+    element.removeChildren();
+
+
+    ArrayList<nu.xom.Node> replacementNodes = new ArrayList<nu.xom.Node>();
+
+
+    // Go through the childElements and process them
+    // into the replacement Elements
+    for (int i = 0; i < childElements.size(); i++)
+      {
+      nu.xom.Element e = childElements.get(i);
+
+      if( e.getNamespaceURI("rcl")!= null)
         {
         String name = e.getLocalName();
         if ("include".equals(name))
           {
-          processInclude(e, context, tolerant);
+          ArrayList<nu.xom.Node> includeNodes = processInclude(e, context, tolerant);
+
+          for( int j=0; j< includeNodes.size(); j++)
+            {
+            replacementNodes.add(includeNodes.get(j));
+            }
+
           }
         else if ("if".equals(name))
           {
-          processIf(e, context, tolerant);
-          }
-        else if (name.equals("resolve"))
-          {
-//          processResolve(e, context, tolerant);
-          }
-        else if (name.equals("eval"))
-          {
-//          processEval(e, context, tolerant);
-          }
-        else
-          {
-          exceptionHandler(context, tolerant, "EXP_PROCESSING", "MSG_UNSUPPORTED_TAG", documentElement, null, e.getNodeName());
+          ArrayList<nu.xom.Node> includeNodes = processIf(e, context, tolerant);
+
+          for( int j=0; j< includeNodes.size(); j++)
+            {
+            replacementNodes.add(includeNodes.get(j));
+            }
+
           }
         }
       else
         {
-        String inlineResolve = e.getAttribute("rcl:resolve");
-        if (inlineResolve.length() > 0)
-          {
-//          processInlineResolve(e, inlineResolve, context, tolerant);
-          }
-        String inlineEval = e.getAttribute("rcl:eval");
-        if (inlineEval.length() > 0)
-          {
-//          processInlineEval(e, inlineEval, context, tolerant);
-          }
-        processTemplate(e, context, tolerant);
+        nu.xom.Element ee = childElements.get(i);
+        replacementNodes.add(ee);
         }
-      e = XMLUtils.getNextSiblingElement(e);
+
+      }
+    // Now use the replacement nodes to build up the template element
+    for( int i=0; i<replacementNodes.size(); i++)
+      {
+      element.appendChild(replacementNodes.get(i));
       }
 
-
     }
+
+
+
+
 
   /**
    * Called when an rcl:include tag is discovered in the template.
@@ -121,227 +151,251 @@ public class RCLRuntime extends StandardAccessorImpl
    * @param tolerant Indicates if processing should be tolerant of errors.
    *
    */
-  private ArrayList<Element> processInclude(Element includeElement, INKFRequestContext context, boolean tolerant) throws Exception
+  protected ArrayList<nu.xom.Node> processInclude(nu.xom.Element includeElement, INKFRequestContext context, boolean tolerant) throws Exception
     {
-    ArrayList<Element> elementsToInclude = null;
-    ArrayList<Element> elementsFromInclude;
-    String target = "include";
+    nu.xom.Element newElement;
 
-    try
+    // Gather the children of the include element
+    // and remove them from the include element itself
+    ArrayList<nu.xom.Element> childElements = new ArrayList<nu.xom.Element>();
+    nu.xom.Elements elements = includeElement.getChildElements();
+    for (int i=0; i<elements.size(); i++)
       {
-      // Build the list of elements that are the set of included "replacement" elements
-      NodeList children = includeElement.getChildNodes();
-      elementsToInclude = new ArrayList<Element>(children.getLength());
-
-      Element element = XMLUtils.getFirstChildElement(includeElement);
-      while(element != null)
+      nu.xom.Element ee = elements.get(i);
+      if (ee.getChildElements().size() > 0 && ee.getNamespaceURI("rcl")==null)
         {
-        String ns = element.getNamespaceURI();
-        if (ns != null && ns.equals(RCL_NS))
-          {
-          String name = element.getLocalName();
-          if ("request".equals(name))
-            {
-            Element newElement = processRequest(element, context);
-            elementsToInclude.add((Element)includeElement.getOwnerDocument().importNode(newElement, true));
-            }
-          else if ("include".equals(name))
-            {
-            elementsFromInclude = processInclude(element, context, tolerant);
-            elementsToInclude.addAll(elementsFromInclude);
-            }
-          else if ("xpath".equals(name))
-            {
-            System.out.println("We don't handle xpath yet.");
-            }
-          else
-            {
-            exceptionHandler(context, tolerant, "EXP_INCLUDE", "MSG_UNSUPPORTED_TAG", includeElement, null, target);
-            }
-          }
-        else
-          {
-          processTemplate(element, context, tolerant);
-          elementsToInclude.add(element);
-          }
-        element = XMLUtils.getNextSiblingElement(element);
+        processTemplate(ee,context, tolerant);
         }
 
-      Element toReplace = includeElement;
-      Node owningNode = toReplace.getParentNode();
-
-      Node n = owningNode.getFirstChild();
-      while(n != toReplace) {
-        n = n.getNextSibling();
+      childElements.add(ee);
       }
+    includeElement.removeChildren();
 
-      // Insert all of the include elements before the replace target
-      for (int i = 0; i < elementsToInclude.size(); i++)
-        {
-        owningNode.insertBefore(elementsToInclude.get(i), n);
-        }
+    ArrayList<nu.xom.Node> replacementNodes = new ArrayList<nu.xom.Node>();
 
-      toReplace.getParentNode().removeChild(toReplace);
-      }
-    catch (Exception e)
+
+    for (int i=0; i<childElements.size(); i++)
       {
-      e.printStackTrace();
-//      exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_EVAL", includeElement, e, target);
+      newElement = null;
+      nu.xom.Element e = elements.get(i);
+
+      if( e.getNamespaceURI("rcl")!= null)
+         {
+         String name = e.getLocalName();
+         if ("request".equals(name))
+           {
+           newElement = processRequest(e, context);
+           nu.xom.Node nn = newElement.copy();
+           replacementNodes.add(nn);
+           }
+         if("include".equals(name))
+           {
+           ArrayList<nu.xom.Node> includeNodes = processInclude(e, context,  tolerant);
+           for(int j=0; j < includeNodes.size();j++)
+             {
+             replacementNodes.add(includeNodes.get(j));
+             }
+           }
+         }
+      else
+        {
+        nu.xom.Element ee = childElements.get(i);
+        //processTemplate(ee, context, tolerant);
+        replacementNodes.add(ee);
+        }
       }
-    return elementsToInclude;
+
+    return replacementNodes;
     }
 
-  /**
-    * Called when an rcl:if tag is discovered in the template.
-    *
-    * @param ifElement The DOM includeElement that is the rcl:include
-    * @param context The request context
-    * @param tolerant Indicates if processing should be tolerant of errors.
-    *
-    */
-  protected void processIf(Element ifElement, INKFRequestContext context, boolean tolerant) throws Exception
+
+
+  protected nu.xom.Element processRequest(nu.xom.Element requestElement, INKFRequestContext context) throws Exception
     {
-    ArrayList<Element> elementsToInclude = null;
+    INKFRequest request = buildRequest(requestElement, context);
+    request.setRepresentationClass(org.w3c.dom.Node.class);
+    org.w3c.dom.Node node = (Node)context.issueRequest(request);
 
-    // TODO: Add better error checking of the form of the rcl:if structure
+    Document template = getMutableClone(node);
 
-    // Get the "if" node and optional "true" and "false" nodes
-    Element replacementNode = null;
-    Element eTrue = null;
-    Element eFalse = null;
+    nu.xom.Document document = DOMConverter.convert(template);
+    return document.getRootElement();
+    }
 
+
+
+  protected boolean processRequestForBoolean(nu.xom.Element requestElement, INKFRequestContext context) throws Exception
+    {
+    INKFRequest request = buildRequest(requestElement, context);
+    request.setRepresentationClass(java.lang.Boolean.class);
+    Boolean response = (Boolean)context.issueRequest(request);
+    return response.booleanValue();
+    }
+
+
+
+
+    /**
+     * Build an NKF request object from an XML specification
+     *
+     * rcl:request
+     *   rcl:identifier
+     *   rcl:verb
+     *   rcl:argument
+     *   rcl:representation
+     */
+
+    protected INKFRequest buildRequest(nu.xom.Element requestElement, INKFRequestContext context) throws Exception
+      {
+      INKFRequest request = null;
+
+      nu.xom.Elements elements = requestElement.getChildElements();
+
+      // We have to know the identifier first
+      for (int i=0; i<elements.size(); i++)
+        {
+        nu.xom.Element e = elements.get(i);
+        if (e.getNamespaceURI("rcl")!=null && "identifier".equals(e.getLocalName()))
+          {
+          String uri = e.getValue();
+          request = context.createRequest(uri);
+          }
+        }
+
+      return request;
+      }
+
+
+
+  protected ArrayList<nu.xom.Node> processIf(nu.xom.Element ifElement, INKFRequestContext context, boolean tolerant) throws Exception
+    {
+    nu.xom.Element newElement = null;
     boolean test = false;
 
-    try
+    // Gather the children of the if element
+    // and remove them from the if element itself
+    ArrayList<nu.xom.Element> childElements = new ArrayList<nu.xom.Element>();
+    nu.xom.Elements elements = ifElement.getChildElements();
+    for (int i=0; i<elements.size(); i++)
       {
-     // Find the nodes that comprise this structure
-      Element element = XMLUtils.getFirstChildElement(ifElement);
-      while(element != null)
+      nu.xom.Element ee = elements.get(i);
+      if (ee.getChildElements().size() > 0 && ee.getNamespaceURI("rcl")==null)
         {
-        String ns = element.getNamespaceURI();
-        if (ns != null && ns.equals(RCL_NS))
-          {
-          String name = element.getLocalName();
-          if ("request".equals(name))
-            {
-            Boolean response = processRequestForBoolean(element, context);
-            // TODO: Include robust Boolean type processing (such as issue a transrept request
-            // if the returned type is not Boolean.
-            test = response.booleanValue();
-            }
-          else if ("true".equals(name))
-            {
-            eTrue = element;
-            }
-          else if ("false".equals(name))
-            {
-            eFalse = element;
-            }
-          else
-            {
-            exceptionHandler(context, tolerant, "EXP_INCLUDE", "MSG_UNSUPPORTED_TAG", ifElement, null, name);
-            }
-          }
-        else
-          {
-          processTemplate(element, context, tolerant);
-          }
-        element = XMLUtils.getNextSiblingElement(element);
+        processTemplate(ee,context, tolerant);
         }
 
-      replacementNode = test ? eTrue : eFalse;
-      boolean doReplace = (null != replacementNode);
-
-
-      if (doReplace)
-        {
-        processTemplate(replacementNode, context, tolerant);
-
-        // Gather the replacements
-        Element e = XMLUtils.getFirstChildElement(replacementNode);
-        elementsToInclude = new ArrayList<Element>();
-        while(e != null)
-          {
-          processTemplate(e, context, tolerant);
-          elementsToInclude.add(e);
-          e = XMLUtils.getNextSiblingElement(e);
-          }
-        }
-
-      Element toReplace = ifElement;
-      if (doReplace)
-        {
-        Node owningNode = toReplace.getParentNode();
-
-        Node n = owningNode.getFirstChild();
-        while (n != toReplace)
-          {
-          n = n.getNextSibling();
-          }
-
-        // Insert all of the include elements before the replace target
-        for (int i = 0; i < elementsToInclude.size(); i++)
-          {
-          owningNode.insertBefore(elementsToInclude.get(i), n);
-          }
-        }
-
-      // We must remove the replacement target whether there was an actual replacement or not
-      toReplace.getParentNode().removeChild(toReplace);
+      childElements.add(ee);
       }
-    catch (Exception e)
+    ifElement.removeChildren();
+
+
+    ArrayList<nu.xom.Node> replacementNodes = new ArrayList<nu.xom.Node>();
+
+    // Find the request node, issue the request and find out which sub-node fills the replacementNodes collection
+    for (int i=0; i<childElements.size(); i++)
       {
-      e.printStackTrace();
-//      exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_EVAL", includeElement, e, target);
+      nu.xom.Element e = childElements.get(i);
+      if( e.getNamespaceURI("rcl")!= null)
+         {
+         String name = e.getLocalName();
+         if ("request".equals(name))
+           {
+           test = processRequestForBoolean(e, context);
+           }
+         }
       }
+
+     for (int i = 0; i< childElements.size(); i++)
+       {
+       nu.xom.Element e = childElements.get(i);
+       if (e.getNamespaceURI("rcl")!=null)
+         {
+         if ("true".equals(e.getLocalName()) && test)
+           {
+           ArrayList<nu.xom.Node> includeNodes = processIfTrueFalse(e, context,  tolerant);
+           for(int j=0; j < includeNodes.size();j++)
+             {
+             replacementNodes.add(includeNodes.get(j));
+             }
+           }
+         if ("false".equals(e.getLocalName()) && !test)
+           {
+           ArrayList<nu.xom.Node> includeNodes = processIfTrueFalse(e, context,  tolerant);
+           for(int j=0; j < includeNodes.size();j++)
+             {
+             replacementNodes.add(includeNodes.get(j));
+             }
+           }
+         // We also need if and include here...
+         }
+       else
+         {
+         replacementNodes.add(childElements.get(i));
+         }
+       }
+
+    return replacementNodes;
+    }
+
+
+  protected ArrayList<nu.xom.Node> processIfTrueFalse(nu.xom.Element trueFalseElement, INKFRequestContext context, boolean tolerant) throws Exception
+    {
+    ArrayList<nu.xom.Element> childElements = new ArrayList<nu.xom.Element>();
+    nu.xom.Elements elements = trueFalseElement.getChildElements();
+    for (int i=0; i<elements.size(); i++)
+      {
+      nu.xom.Element ee = elements.get(i);
+      if (ee.getChildElements().size() > 0 && ee.getNamespaceURI("rcl")==null)
+        {
+        processTemplate(ee,context, tolerant);
+        }
+
+      childElements.add(ee);
+      }
+    trueFalseElement.removeChildren();
+
+
+    ArrayList<nu.xom.Node> replacementNodes = new ArrayList<nu.xom.Node>();
+
+    for (int i = 0; i< childElements.size(); i++)
+      {
+      nu.xom.Element e = childElements.get(i);
+      if (e.getNamespaceURI("rcl")!=null)
+        {
+        // For now we will ignore rcl: sub-elements
+        // We also need if and include here...
+        }
+      else
+        {
+        replacementNodes.add(childElements.get(i));
+        }
+      }
+
+   return replacementNodes;
+
 
     }
 
 
-  // Without an XPath the only option is to replace the rcl:include includeElement
-//      boolean replaceInclude = XMLUtils.getChildElementNamed(includeElement, "xpath") == null;
-//      if (replaceInclude)
-//        {
-//        Element requestElement = XMLUtils.getChildElementNamed(includeElement, "request");
-//        XMLReadable readableDOM = new XMLReadable(requestElement);
-//        request = buildRequest(readableDOM, context);
-//        processArgumentAttributes(request, includeElement);
-//        }
-//      else
-//        {
-        // Not supporting rcl:xpath right now
-//        XMLReadable readableDOM = new XMLReadable(includeElement);
-//        request = buildRequest(readableDOM, context);
-//
-//        String xpath = readableDOM.getTrimText("xrl:xpath");
-//        if (xpath.length() > 0)
-//          {
-//          List<Node> nodes = XPath.eval(xpath, includeElement);
-//          if (nodes.size() == 1 && nodes.get(0) instanceof Element)
-//            {
-//            toReplace = (Element) nodes.get(0);
-//            }
-//          else
-//            {
-//            exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_BAD_XPATH", includeElement, null, target);
-//            }
-//          }
-//        }
-
-//      request.setRepresentationClass(Node.class);
-//      Node n = (Node) context.issueRequest(request);
-//      if (n == null)
-//        {
-//        exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_NULL", includeElement, null, target);
-//        return;
-//        }
-//      else if (n instanceof Document)
-//        {
-//        n = ((Document) n).getDocumentElement();
-//        }
+  //========== THIS IS THE OLD CODE ==========
 
 
 
+
+  private Document getMutableClone(Node node) throws ParserConfigurationException
+    {
+    Document result;
+    if (node instanceof Document)
+      {
+      result = (Document) XMLUtils.safeDeepClone(node);
+      }
+    else
+      {
+      result = org.netkernel.layer0.util.XMLUtils.newDocument();
+      result.appendChild(result.importNode(node, true));
+      }
+    return result;
+    }
 
 
   private void exceptionHandler(INKFRequestContext aHelper, boolean tolerant, String aException, String aMessage, Node aElement, Exception e, String target) throws Exception
@@ -360,133 +414,6 @@ public class RCLRuntime extends StandardAccessorImpl
       }
     }
 
-
-
-  private Element processRequest(Element requestElement, INKFRequestContext context) throws Exception
-    {
-    INKFRequest request;
-    XMLReadable readableDOM = new XMLReadable(requestElement);
-
-    request = buildRequest(readableDOM, context);
-    // Not supporting attribute processing now
-    // processArgumentAttributes(request, includeElement);
-    request.setRepresentationClass(Node.class);
-    Node n = (Node) context.issueRequest(request);
-    if (n == null)
-      {
-      // Do some sort of exception processing
-      // exceptionHandler(context, tolerant, "EX_INCLUDE", "MSG_NULL", includeElement, null, target);
-      }
-    else if (n instanceof Document)
-      {
-      n = ((Document) n).getDocumentElement();
-      }
-    return (Element)n;
-     }
-
-
-
-  // TODO: This is not elegant. Figure out a better way to have a forced Boolean request
-  // with error checking
-  private Boolean processRequestForBoolean(Element requestElement, INKFRequestContext context) throws Exception
-    {
-    INKFRequest request;
-    XMLReadable readableDOM = new XMLReadable(requestElement);
-
-    request = buildRequest(readableDOM, context);
-    request.setRepresentationClass(Boolean.class);
-    Boolean returnValue = (Boolean) context.issueRequest(request);
-
-    return returnValue;
-    }
-
-  /**
-   * Build and request a request given an rcl:request element
-   *
-   * @param aReadable
-   * @param aContext
-   * @return
-   * @throws Exception
-   */
-  private INKFRequest buildRequest(XMLReadable aReadable, INKFRequestContext aContext) throws Exception
-    {
-    Document d = XMLUtils.newDocument();
-    Element docEl = d.createElement("request");
-    d.appendChild(docEl);
-    String identifier = aReadable.getTrimText("rcl:identifier");
-    Element idEl = d.createElement("identifier");
-    XMLUtils.setText(idEl, identifier);
-    docEl.appendChild(idEl);
-    List<Element> arguments = (List<Element>) (List) aReadable.getNodes("rcl:argument");
-    for (Element argument : arguments)
-      {
-      Element argEl = d.createElement("argument");
-      NamedNodeMap nnm = argument.getAttributes();
-      for (int i = 0; i < nnm.getLength(); i++)
-        {
-        Node attIn = nnm.item(i);
-        argEl.setAttribute(attIn.getLocalName(), attIn.getNodeValue());
-        }
-      for (Node n = argument.getFirstChild(); n != null; n = n.getNextSibling())
-        {
-        argEl.appendChild(d.importNode(n, true));
-        }
-      docEl.appendChild(argEl);
-      }
-
-    RequestBuilder b = new RequestBuilder(docEl, aContext.getKernelContext().getKernel().getLogger());
-    INKFRequest req = b.buildRequest(aContext, null, null);
-    return req;
-    }
-
-  // We are not doing this in RCL (yet?)
-  private void processArgumentAttributes(INKFRequest aReq, Element aElement) throws NKFException
-    {
-    NamedNodeMap nnm = aElement.getAttributes();
-    for (int i = nnm.getLength() - 1; i >= 0; i--)
-      {
-      Node n = nnm.item(i);
-      String argName = ("xrl".equals(n.getPrefix())) ? n.getLocalName() : n.getNodeName();
-      if (argName.startsWith(ARGUMENT_ATT))
-        {
-        String name = argName.substring(ARGUMENT_ATT.length());
-        String value = n.getNodeValue();
-        try
-          {
-          aReq.addArgument(name, value);
-          }
-        catch (NKFException e)
-          {  //argument not available so don't add it- if mandatory then grammar will catch it
-          if (!isArg(value))
-            {
-            throw e;
-            }
-          }
-        aElement.removeAttributeNode((Attr) n);
-        }
-      }
-    }
-
-  private static boolean isArg(String aIdentifier)
-    {
-    return aIdentifier.startsWith("arg:");
-    }
-
-
-  private Document getMutableClone(Node node) throws ParserConfigurationException
-    {
-    Document result;
-    if (node instanceof Document)
-      {
-      result = (Document) XMLUtils.safeDeepClone(node);
-      }
-    else
-      {
-      result = org.netkernel.layer0.util.XMLUtils.newDocument();
-      result.appendChild(result.importNode(node, true));
-      }
-    return result;
-    }
 
 
   }
