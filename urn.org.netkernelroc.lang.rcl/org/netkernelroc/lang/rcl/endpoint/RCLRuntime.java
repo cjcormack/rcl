@@ -8,6 +8,7 @@ import nu.xom.converters.DOMConverter;
 import org.netkernel.layer0.nkf.INKFRequest;
 import org.netkernel.layer0.nkf.INKFRequestContext;
 import org.netkernel.layer0.nkf.INKFResponse;
+import org.netkernel.layer0.nkf.NKFException;
 import org.netkernel.layer0.util.XMLUtils;
 import org.netkernel.module.standard.endpoint.StandardAccessorImpl;
 import org.w3c.dom.DOMImplementation;
@@ -16,6 +17,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * RCL Runtime endpoint
@@ -24,6 +26,12 @@ import java.util.ArrayList;
  */
 public class RCLRuntime extends StandardAccessorImpl
   {
+  private static final String NS_RCL = "rcl";
+  private static final String TAG_INCLUDE = "include";
+  private static final String TAG_IF = "if";
+  private static final String TAG_TRUE = "true";
+  private static final String TAG_FALSE = "false";
+
 
   public RCLRuntime()
     {
@@ -31,7 +39,8 @@ public class RCLRuntime extends StandardAccessorImpl
     }
 
 
-  public void onSource(INKFRequestContext context) throws Exception
+  @Override
+  public void onSource(final INKFRequestContext context) throws NKFException, ParserConfigurationException
     {
     boolean tolerant = context.getThisRequest().argumentExists("tolerant");
     String mimeType = context.getThisRequest().getArgumentValue("mimeType");
@@ -70,23 +79,23 @@ public class RCLRuntime extends StandardAccessorImpl
 
   //========== Protected ==========
 
-  protected void processTemplate(Element element, INKFRequestContext context, boolean tolerant) throws Exception
+  protected void processTemplate(final Element element, final INKFRequestContext context, boolean tolerant)   throws NKFException, ParserConfigurationException
     {
     ArrayList<Node> replacementNodes = new ArrayList<Node>();
 
-    element.removeNamespaceDeclaration("rcl");
+    element.removeNamespaceDeclaration(NS_RCL);
 
-    ArrayList<Element> childElements = stripAndReturnChildElements(element, context, tolerant);
+    List<Element> childElements = stripAndReturnChildElements(element, context, tolerant);
 
     for (Element e : childElements)
       {
-      if( e.getNamespaceURI("rcl")!= null)
+      if( e.getNamespaceURI(NS_RCL)!= null)
         {
-        if ("include".equals(e.getLocalName()))
+        if (TAG_INCLUDE.equals(e.getLocalName()))
           {
           replacementNodes.addAll(processInclude(e, context, tolerant));
           }
-        if ("if".equals(e.getLocalName()))
+        if (TAG_IF.equals(e.getLocalName()))
           {
           replacementNodes.addAll(processIf(e, context, tolerant));
           }
@@ -107,25 +116,25 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  protected ArrayList<Node> processInclude(Element includeElement, INKFRequestContext context, boolean tolerant) throws Exception
+  protected List<Node> processInclude(final Element includeElement, final INKFRequestContext context, boolean tolerant) throws NKFException, ParserConfigurationException
     {
     ArrayList<Node> replacementNodes = new ArrayList<Node>();
 
-    ArrayList<Element> childElements = stripAndReturnChildElements(includeElement, context, tolerant);
+    List<Element> childElements = stripAndReturnChildElements(includeElement, context, tolerant);
 
     for(Element e : childElements)
       {
-      if( e.getNamespaceURI("rcl")!= null)
+      if( e.getNamespaceURI(NS_RCL)!= null)
          {
          if ("request".equals(e.getLocalName()))
            {
            replacementNodes.add(processRequest(e, context).copy());
            }
-         if("include".equals(e.getLocalName()))
+         if(TAG_INCLUDE.equals(e.getLocalName()))
            {
            replacementNodes.addAll(processInclude(e, context,  tolerant));
            }
-         if("if".equals(e.getLocalName()))
+         if(TAG_IF.equals(e.getLocalName()))
            {
            replacementNodes.addAll(processIf(e, context,  tolerant));
            }
@@ -141,7 +150,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  protected Element processRequest(Element requestElement, INKFRequestContext context) throws Exception
+  protected Element processRequest(final Element requestElement, final INKFRequestContext context) throws NKFException, ParserConfigurationException
     {
     INKFRequest request = buildRequest(requestElement, context);
     request.setRepresentationClass(org.w3c.dom.Node.class);
@@ -155,7 +164,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  protected boolean processRequestForBoolean(Element requestElement, INKFRequestContext context) throws Exception
+  protected final boolean processRequestForBoolean(final Element requestElement, final INKFRequestContext context) throws NKFException
     {
     INKFRequest request = buildRequest(requestElement, context);
     request.setRepresentationClass(java.lang.Boolean.class);
@@ -164,7 +173,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-    protected INKFRequest buildRequest(Element requestElement, INKFRequestContext context) throws Exception
+    protected INKFRequest buildRequest(final Element requestElement, final INKFRequestContext context) throws NKFException
       {
       INKFRequest request = null;
 
@@ -174,7 +183,7 @@ public class RCLRuntime extends StandardAccessorImpl
       for (int i=0; i<elements.size(); i++)
         {
         nu.xom.Element e = elements.get(i);
-        if (e.getNamespaceURI("rcl")!=null && "identifier".equals(e.getLocalName()))
+        if (e.getNamespaceURI(NS_RCL)!=null && "identifier".equals(e.getLocalName()))
           {
           String uri = e.getValue();
           request = context.createRequest(uri);
@@ -186,17 +195,17 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  protected ArrayList<Node> processIf(Element ifElement, INKFRequestContext context, boolean tolerant) throws Exception
+  protected List<Node> processIf(final Element ifElement, final INKFRequestContext context, boolean tolerant)   throws NKFException, ParserConfigurationException
     {
     ArrayList<Node> replacementNodes = new ArrayList<Node>();
     boolean test = false;
 
-    ArrayList<Element> childElements = stripAndReturnChildElements(ifElement, context, tolerant);
+    List<Element> childElements = stripAndReturnChildElements(ifElement, context, tolerant);
 
     // Find and issue the request
     for(Element e : childElements)
       {
-      if( e.getNamespaceURI("rcl")!= null && "request".equals(e.getLocalName()))
+      if( e.getNamespaceURI(NS_RCL)!= null && "request".equals(e.getLocalName()))
          {
          test = processRequestForBoolean(e, context);
          }
@@ -204,21 +213,21 @@ public class RCLRuntime extends StandardAccessorImpl
 
     for(Element e : childElements)
       {
-       if (e.getNamespaceURI("rcl")!=null)
+       if (e.getNamespaceURI(NS_RCL)!=null)
          {
-         if ("true".equals(e.getLocalName()) && test)
+         if (TAG_TRUE.equals(e.getLocalName()) && test)
            {
            replacementNodes.addAll(processIfTrueFalse(e, context, tolerant));
            }
-         if ("false".equals(e.getLocalName()) && !test)
+         if (TAG_FALSE.equals(e.getLocalName()) && !test)
            {
            replacementNodes.addAll(processIfTrueFalse(e, context, tolerant));
            }
-         if("include".equals(e.getLocalName()))
+         if(TAG_INCLUDE.equals(e.getLocalName()))
            {
            replacementNodes.addAll(processInclude(e, context,  tolerant));
            }
-         if("if".equals(e.getLocalName()))
+         if(TAG_IF.equals(e.getLocalName()))
            {
            replacementNodes.addAll(processIf(e, context,  tolerant));
            }
@@ -233,21 +242,21 @@ public class RCLRuntime extends StandardAccessorImpl
     }
 
 
-  protected ArrayList<Node> processIfTrueFalse(Element trueFalseElement, INKFRequestContext context, boolean tolerant) throws Exception
+  protected List<Node> processIfTrueFalse(final Element trueFalseElement, final INKFRequestContext context, boolean tolerant)  throws NKFException, ParserConfigurationException
     {
     ArrayList<Node> replacementNodes = new ArrayList<Node>();
 
-    ArrayList<Element> childElements = stripAndReturnChildElements(trueFalseElement, context, tolerant);
+    List<Element> childElements = stripAndReturnChildElements(trueFalseElement, context, tolerant);
 
     for(Element e: childElements)
       {
-      if (e.getNamespaceURI("rcl")!=null)
+      if (e.getNamespaceURI(NS_RCL)!=null)
         {
-        if("include".equals(e.getLocalName()))
+        if(TAG_INCLUDE.equals(e.getLocalName()))
           {
           replacementNodes.addAll(processInclude(e, context,  tolerant));
           }
-        if("if".equals(e.getLocalName()))
+        if(TAG_IF.equals(e.getLocalName()))
           {
           replacementNodes.addAll(processIf(e, context,  tolerant));
           }
@@ -261,7 +270,7 @@ public class RCLRuntime extends StandardAccessorImpl
    return replacementNodes;
     }
 
-  protected ArrayList<Element> stripAndReturnChildElements(Element element, INKFRequestContext context, boolean tolerant ) throws Exception
+  protected List<Element> stripAndReturnChildElements(final Element element, final INKFRequestContext context, boolean tolerant ) throws NKFException, ParserConfigurationException
     {
     ArrayList<Element> childElements = new ArrayList<Element>();
     Elements elements = element.getChildElements();
@@ -282,7 +291,7 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  private org.w3c.dom.Document getMutableClone(org.w3c.dom.Node node) throws ParserConfigurationException
+  private org.w3c.dom.Document getMutableClone(final org.w3c.dom.Node node) throws ParserConfigurationException
     {
     org.w3c.dom.Document result;
     if (node instanceof org.w3c.dom.Document)

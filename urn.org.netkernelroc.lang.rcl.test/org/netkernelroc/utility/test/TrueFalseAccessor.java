@@ -12,7 +12,7 @@ import org.netkernel.module.standard.endpoint.StandardAccessorImpl;
 public class TrueFalseAccessor extends StandardAccessorImpl
   {
 
-  public void onSource(INKFRequestContext context) throws Exception
+  public final void onSource(final INKFRequestContext context)
     {
     Boolean returnValue;
     String argumentType = context.getThisRequest().getArgumentValue("type");
