@@ -5,10 +5,7 @@ import nu.xom.Element;
 import nu.xom.Elements;
 import nu.xom.Node;
 import nu.xom.converters.DOMConverter;
-import org.netkernel.layer0.nkf.INKFRequest;
-import org.netkernel.layer0.nkf.INKFRequestContext;
-import org.netkernel.layer0.nkf.INKFResponse;
-import org.netkernel.layer0.nkf.NKFException;
+import org.netkernel.layer0.nkf.*;
 import org.netkernel.layer0.util.XMLUtils;
 import org.netkernel.module.standard.endpoint.StandardAccessorImpl;
 import org.w3c.dom.DOMImplementation;
@@ -31,7 +28,8 @@ public class RCLRuntime extends StandardAccessorImpl
   private static final String TAG_IF = "if";
   private static final String TAG_TRUE = "true";
   private static final String TAG_FALSE = "false";
-
+  private static final String TAG_IDENTIFIER = "identifier";
+  private static final String TAG_REQUEST = "request";
 
   public RCLRuntime()
     {
@@ -95,9 +93,13 @@ public class RCLRuntime extends StandardAccessorImpl
           {
           replacementNodes.addAll(processInclude(e, context, tolerant));
           }
-        if (TAG_IF.equals(e.getLocalName()))
+        else if (TAG_IF.equals(e.getLocalName()))
           {
           replacementNodes.addAll(processIf(e, context, tolerant));
+          }
+        else
+          {
+          // unsupported rcl: tag. Need exception handling code
           }
         }
       else
@@ -126,17 +128,21 @@ public class RCLRuntime extends StandardAccessorImpl
       {
       if( e.getNamespaceURI(NS_RCL)!= null)
          {
-         if ("request".equals(e.getLocalName()))
+         if (TAG_REQUEST.equals(e.getLocalName()))
            {
-           replacementNodes.add(processRequest(e, context).copy());
+           replacementNodes.add(processRequest(e, context, tolerant).copy());
            }
-         if(TAG_INCLUDE.equals(e.getLocalName()))
+         else if(TAG_INCLUDE.equals(e.getLocalName()))
            {
            replacementNodes.addAll(processInclude(e, context,  tolerant));
            }
-         if(TAG_IF.equals(e.getLocalName()))
+         else if(TAG_IF.equals(e.getLocalName()))
            {
            replacementNodes.addAll(processIf(e, context,  tolerant));
+           }
+         else
+           {
+           // unsupported rcl: tag. Need exception handling code
            }
          }
       else
@@ -150,25 +156,44 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  protected Element processRequest(final Element requestElement, final INKFRequestContext context) throws NKFException, ParserConfigurationException
+  protected Element processRequest(final Element requestElement, final INKFRequestContext context, boolean tolerant) throws NKFException, ParserConfigurationException
     {
-    INKFRequest request = buildRequest(requestElement, context);
-    request.setRepresentationClass(org.w3c.dom.Node.class);
-    org.w3c.dom.Node node = (org.w3c.dom.Node)context.issueRequest(request);
+    Element returnValue = null;
+    try
+      {
+      INKFRequest request = buildRequest(requestElement, context);
+      request.setRepresentationClass(org.w3c.dom.Node.class);
 
-    org.w3c.dom.Document template = getMutableClone(node);
+      org.w3c.dom.Node node = (org.w3c.dom.Node)context.issueRequest(request);
 
-    Document document = DOMConverter.convert(template);
-    return document.getRootElement();
+      org.w3c.dom.Document template = getMutableClone(node);
+
+      returnValue = DOMConverter.convert(template).getRootElement();
+      }
+    catch(NKFException e)
+      {
+      exceptionHandler(context, e, requestElement, tolerant);
+      }
+      return returnValue;
     }
 
 
 
-  protected final boolean processRequestForBoolean(final Element requestElement, final INKFRequestContext context) throws NKFException
+  protected  boolean processRequestForBoolean(final Element requestElement, final INKFRequestContext context, boolean tolerant) throws NKFException
     {
-    INKFRequest request = buildRequest(requestElement, context);
-    request.setRepresentationClass(java.lang.Boolean.class);
-    return (Boolean)context.issueRequest(request);
+    boolean returnValue = true;
+    try
+      {
+      INKFRequest request = buildRequest(requestElement, context);
+      request.setRepresentationClass(java.lang.Boolean.class);
+      returnValue = (Boolean)context.issueRequest(request);
+      }
+    catch(NKFException e)
+      {
+      exceptionHandler(context,  e, requestElement, tolerant);
+      }
+
+    return returnValue;
     }
 
 
@@ -182,8 +207,8 @@ public class RCLRuntime extends StandardAccessorImpl
       // We have to know the identifier first
       for (int i=0; i<elements.size(); i++)
         {
-        nu.xom.Element e = elements.get(i);
-        if (e.getNamespaceURI(NS_RCL)!=null && "identifier".equals(e.getLocalName()))
+        Element e = elements.get(i);
+        if (e.getNamespaceURI(NS_RCL)!=null && TAG_IDENTIFIER.equals(e.getLocalName()))
           {
           String uri = e.getValue();
           request = context.createRequest(uri);
@@ -205,9 +230,9 @@ public class RCLRuntime extends StandardAccessorImpl
     // Find and issue the request
     for(Element e : childElements)
       {
-      if( e.getNamespaceURI(NS_RCL)!= null && "request".equals(e.getLocalName()))
+      if( e.getNamespaceURI(NS_RCL)!= null && TAG_REQUEST.equals(e.getLocalName()))
          {
-         test = processRequestForBoolean(e, context);
+         test = processRequestForBoolean(e, context, tolerant);
          }
       }
 
@@ -219,17 +244,21 @@ public class RCLRuntime extends StandardAccessorImpl
            {
            replacementNodes.addAll(processIfTrueFalse(e, context, tolerant));
            }
-         if (TAG_FALSE.equals(e.getLocalName()) && !test)
+         else if (TAG_FALSE.equals(e.getLocalName()) && !test)
            {
            replacementNodes.addAll(processIfTrueFalse(e, context, tolerant));
            }
-         if(TAG_INCLUDE.equals(e.getLocalName()))
+         else if(TAG_INCLUDE.equals(e.getLocalName()))
            {
            replacementNodes.addAll(processInclude(e, context,  tolerant));
            }
-         if(TAG_IF.equals(e.getLocalName()))
+         else if(TAG_IF.equals(e.getLocalName()))
            {
            replacementNodes.addAll(processIf(e, context,  tolerant));
+           }
+         else
+           {
+           // unsupported rcl: tag. Need exception handling code
            }
          }
        else
@@ -256,9 +285,13 @@ public class RCLRuntime extends StandardAccessorImpl
           {
           replacementNodes.addAll(processInclude(e, context,  tolerant));
           }
-        if(TAG_IF.equals(e.getLocalName()))
+        else if(TAG_IF.equals(e.getLocalName()))
           {
           replacementNodes.addAll(processIf(e, context,  tolerant));
+          }
+        else
+          {
+           // unsupported rcl: tag. Need exception handling code
           }
         }
       else
@@ -277,7 +310,7 @@ public class RCLRuntime extends StandardAccessorImpl
     for (int i=0; i<elements.size(); i++)
       {
       Element e = elements.get(i);
-      if (e.getChildElements().size() > 0 && e.getNamespaceURI("rcl")==null)
+      if (e.getChildElements().size() > 0 && "".equals(e.getNamespacePrefix()))
         {
         processTemplate(e, context, tolerant);
         }
@@ -304,6 +337,18 @@ public class RCLRuntime extends StandardAccessorImpl
       result.appendChild(result.importNode(node, true));
       }
     return result;
+    }
+
+  protected void exceptionHandler(INKFRequestContext context, Exception exception, Node node, boolean tolerant)  throws NKFException
+    {
+    if(tolerant)
+      {
+      context.logFormatted(INKFLocale.LEVEL_DEBUG, "Message", "Path to element", node, "target");
+      }
+    else
+      {
+      throw context.createFormattedException("ID", "Message", "Location", exception, "");
+      }
     }
 
 
