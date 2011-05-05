@@ -481,8 +481,82 @@
     </assert>
   </test>
 
+  <test name="Nested rcl:if elements">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <rcl:if>
+                  <rcl:request>
+                    <rcl:identifier>active:true</rcl:identifier>
+                  </rcl:request>
+                  <rcl:true>
+                    <p>True - true paragraph</p>
+                  </rcl:true>
+                  <rcl:false>
+                    <p>True - false paragraph</p>
+                  </rcl:false>
+                </rcl:if>
+              </rcl:true>
+              <rcl:false>
+                <rcl:if>
+                  <rcl:request>
+                    <rcl:identifier>active:true</rcl:identifier>
+                  </rcl:request>
+                  <rcl:true>
+                    <p>false - true paragraph</p>
+                  </rcl:true>
+                  <rcl:false>
+                    <p>false - false paragraph</p>
+                  </rcl:false>
+                </rcl:if>
+              </rcl:false>
+            </rcl:if>
+            <p>Middle paragraph</p>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
 
-  <notest name="Unsupported Tab">
+    <assert>
+      <notNull/>
+      <xpath>/div/p[1]/text()='True - true paragraph'</xpath>
+      <xpath>/div/p[2]/text()='Middle paragraph'</xpath>
+      <xpath>count(/div/p)=2</xpath>
+    </assert>
+  </test>
+
+  <test name="Unresolved request identifier">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:include>
+              <rcl:request>
+                <rcl:identifier>foo:bar</rcl:identifier>
+              </rcl:request>
+            </rcl:include>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <notNull/>
+    </assert>
+  </test>
+
+
+  <notest name="Unsupported Tag">
     <request>
       <identifier>active:rcl</identifier>
       <argument name="template">
@@ -501,4 +575,265 @@
       <notNull/>
     </assert>
   </notest>
+
+  <test name="Bad HTML?">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <html xmlns:rcl="http://netkernelroc.org/rcl">
+            <head>
+              <title>Database Configuration Manager</title>
+              <script type="text/javascript" src="scripts/jquery.js"/>
+              <link href="css/main.css" rel="stylesheet" type="text/css"/>
+
+            </head>
+
+
+            <body>
+              <h1>Paymode Database Configuration Manager</h1>
+
+              <div class="introduction">
+                This utility allows you to generate various database change scripts from a common XML
+                file.
+              </div>
+
+              <rcl:if xmlns:rcl="http://netkernelroc.org/rcl">
+                <rcl:request>
+                  <rcl:identifier>session:/fileExists</rcl:identifier>
+                </rcl:request>
+                <rcl:true>
+                  <form method="GET" enctype="multipart/form-data"
+                        action="/databaseconfiguration/service/clearUploadedFile">
+                    <table border='1'>
+                      <tr>
+                        <!--
+                        <td>Uploaded File:</td>
+                        <td>$filename</td>
+                        -->
+                        <td>File Uploaded</td>
+                        <td/>
+                        <td>
+                          <input type="submit" value="Clear File"/>
+                        </td>
+                      </tr>
+                    </table>
+                  </form>
+                  <table border='1'>
+                    <thead>
+                      <th>Function</th>
+                      <th>Test</th>
+                      <th>Undo Test</th>
+                      <th>Generate</th>
+                    </thead>
+                    <tbody>
+
+
+                      <rcl:if>
+                        <rcl:request>
+                          <rcl:identifier>res:/databaseconfiguration/service/exists/createTable</rcl:identifier>
+                        </rcl:request>
+                        <rcl:true>
+                          <tr>
+                            <td>Create Table</td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/test/createTable">
+                                <input type="submit" value="Test against Dev"/>
+                              </form>
+                            </td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/undo/createTable">
+                                <input type="submit" value="Undo the test against Dev"/>
+                              </form>
+                            </td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/deliver/createTable">
+                                <input type="submit" value="Generate DDL"/>
+                              </form>
+                            </td>
+                          </tr>
+                        </rcl:true>
+                        <rcl:false>
+                          <div/>
+                        </rcl:false>
+                      </rcl:if>
+
+                      <!-- Alter Table -->
+                      <rcl:if>
+                        <rcl:request>
+                          <rcl:identifier>res:/databaseconfiguration/service/exists/alterTable</rcl:identifier>
+                        </rcl:request>
+                        <rcl:true>
+                          <tr>
+                            <td>Alter Table</td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/test/alterTable">
+                                <input type="submit" value="Test against Dev"/>
+                              </form>
+                            </td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/deliver/alterTable">
+                                <input type="submit" value="Generate DDL"/>
+                              </form>
+                            </td>
+                          </tr>
+                        </rcl:true>
+                        <rcl:false>
+                          <div/>
+                        </rcl:false>
+                      </rcl:if>
+
+                      <!-- Drop Table -->
+                      <rcl:if>
+                        <rcl:request>
+                          <rcl:identifier>res:/databaseconfiguration/service/exists/dropTable</rcl:identifier>
+                        </rcl:request>
+                        <rcl:true>
+                          <tr>
+                            <td>Drop Table</td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/test/dropTable">
+                                <input type="submit" value="Test against Dev"/>
+                              </form>
+                            </td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/deliver/dropTable">
+                                <input type="submit" value="Generate DDL"/>
+                              </form>
+                            </td>
+                          </tr>
+                        </rcl:true>
+                        <rcl:false>
+                          <div/>
+                        </rcl:false>
+                      </rcl:if>
+
+                      <!-- Create Index -->
+                      <rcl:if>
+                        <rcl:request>
+                          <rcl:identifier>res:/databaseconfiguration/service/exists/createIndex</rcl:identifier>
+                        </rcl:request>
+                        <rcl:true>
+                          <tr>
+                            <td>Create Index</td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/test/createIndex">
+                                <input type="submit" value="Test against Dev"/>
+                              </form>
+                            </td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/deliver/createIndex">
+                                <input type="submit" value="Generate DDL"/>
+                              </form>
+                            </td>
+                          </tr>
+                        </rcl:true>
+                        <rcl:false>
+                          <div/>
+                        </rcl:false>
+                      </rcl:if>
+
+
+                      <!-- Create Sequence -->
+                      <rcl:if>
+                        <rcl:request>
+                          <rcl:identifier>res:/databaseconfiguration/service/exists/createSequence</rcl:identifier>
+                        </rcl:request>
+                        <rcl:true>
+                          <tr>
+                            <td>Create Sequence</td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/test/createSequence">
+                                <input type="submit" value="Test against Dev"/>
+                              </form>
+                            </td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/deliver/createSequence">
+                                <input type="submit" value="Generate DDL"/>
+                              </form>
+                            </td>
+                          </tr>
+                        </rcl:true>
+                        <rcl:false>
+                          <div/>
+                        </rcl:false>
+                      </rcl:if>
+
+                      <!-- Create Grants -->
+                      <rcl:if>
+                        <rcl:request>
+                          <rcl:identifier>res:/databaseconfiguration/service/exists/createGrants</rcl:identifier>
+                        </rcl:request>
+                        <rcl:true>
+                          <tr>
+                            <td>Great Grants</td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/test/createGrants">
+                                <input type="submit" value="Test against Dev"/>
+                              </form>
+                            </td>
+                            <td>
+                              <form method="GET" action="/databaseconfiguration/service/deliver/createGrants">
+                                <input type="submit" value="Generate DDL"/>
+                              </form>
+                            </td>
+                          </tr>
+                        </rcl:true>
+                        <rcl:false>
+                          <div/>
+                        </rcl:false>
+                      </rcl:if>
+
+                      <!-- Create Documentation -->
+                      <tr>
+                        <td>Create Documentation</td>
+                        <td>
+                          <form method="GET" action="/databaseconfiguration/service/test/createDocumentation">
+                            <input type="submit" value="Test against Dev"/>
+                          </form>
+                        </td>
+                        <td>
+                          <form method="GET" action="/databaseconfiguration/service/undefined">
+                            <input type="submit" value="Generate DDL"/>
+                          </form>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </rcl:true>
+                <rcl:false>
+                  <form method="POST" enctype="multipart/form-data" action="/databaseconfiguration/service/uploadFile">
+                    <table border='1'>
+                      <tr>
+                        <td>Upload file:</td>
+                        <td>
+                          <input type="file" name="uploadedFile"/>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td/>
+                        <td>
+                          <input type="submit" value="Upload File"/>
+                        </td>
+                      </tr>
+                    </table>
+                  </form>
+                </rcl:false>
+              </rcl:if>
+
+
+            </body>
+          </html>
+        </literal>
+      </argument>
+      <argument name="tolerant">yes</argument>
+      <representation>org.w3c.dom.Document</representation>
+
+    </request>
+    <assert>
+      <notNull/>
+    </assert>
+
+  </test>
+
 </testlist>
