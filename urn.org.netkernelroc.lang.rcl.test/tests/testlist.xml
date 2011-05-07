@@ -41,9 +41,10 @@
 
     <assert>
       <notNull/>
-      <xpath>/div[count(namespace::*)=1]</xpath>
       <!-- How do I prove with XPath that the name space specification is removed? -->
       <xpath>/div</xpath>
+      <xpath>/div/p[1]/text()='This is a template'</xpath>
+      <xpath>/div/p[2]/text()='Stuff at the end.'</xpath>
       <xpath>/div/div</xpath>
       <xpath>/div/div/text()='Simple content.'</xpath>
     </assert>

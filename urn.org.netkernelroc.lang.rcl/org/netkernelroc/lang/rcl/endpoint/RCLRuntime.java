@@ -1,9 +1,6 @@
 package org.netkernelroc.lang.rcl.endpoint;
 
-import nu.xom.Document;
-import nu.xom.Element;
-import nu.xom.Elements;
-import nu.xom.Node;
+import nu.xom.*;
 import nu.xom.converters.DOMConverter;
 import org.netkernel.layer0.nkf.*;
 import org.netkernel.layer0.util.XMLUtils;
@@ -16,29 +13,24 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * RCL Runtime endpoint
- *
- * @author Randolph Kahle
- */
-public class RCLRuntime extends StandardAccessorImpl
+
+public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
   {
-  private static final String NS_RCL = "rcl";
-  private static final String TAG_INCLUDE = "include";
-  private static final String TAG_IF = "if";
-  private static final String TAG_TRUE = "true";
-  private static final String TAG_FALSE = "false";
-  private static final String TAG_IDENTIFIER = "identifier";
-  private static final String TAG_REQUEST = "request";
+  protected static final String NS_RCL = "rcl";
+  protected static final String TAG_REQUEST = "request";
+  protected static final String TAG_IDENTIFIER = "identifier";
+
+
 
   public RCLRuntime()
     {
-    declareThreadSafe();
+    this.declareThreadSafe();
     }
 
 
+
   @Override
-  public void onSource(final INKFRequestContext context) throws NKFException, ParserConfigurationException
+  public void onSource(INKFRequestContext context) throws NKFException
     {
     boolean tolerant = context.getThisRequest().argumentExists("tolerant");
     String mimeType = context.getThisRequest().getArgumentValue("mimeType");
@@ -48,18 +40,26 @@ public class RCLRuntime extends StandardAccessorImpl
     org.w3c.dom.Document template = getMutableClone(templateNode);
 
     Document document = DOMConverter.convert(template);
-    Element element = document.getRootElement();
 
 
-    processTemplate(element, context, tolerant);
+    Element element = processElement(document.getRootElement(), context, tolerant);
+
 
     // Convert back!!
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     factory.setNamespaceAware(true);
-    DocumentBuilder builder = factory.newDocumentBuilder();
-    DOMImplementation impl = builder.getDOMImplementation();
+    org.w3c.dom.Document domdoc = null;
+    try
+      {
+      DocumentBuilder builder = factory.newDocumentBuilder();
+      DOMImplementation impl = builder.getDOMImplementation();
+      domdoc = DOMConverter.convert(element.getDocument(), impl);
+      }
+    catch (ParserConfigurationException e)
+      {
 
-    org.w3c.dom.Document domdoc = DOMConverter.convert(element.getDocument(), impl );
+      }
+
     INKFResponse response = context.createResponseFrom(domdoc);
 
     if (mimeType != null)
@@ -72,91 +72,147 @@ public class RCLRuntime extends StandardAccessorImpl
       }
     }
 
-
-
-
-  //========== Protected ==========
-
-  protected void processTemplate(final Element element, final INKFRequestContext context, boolean tolerant)   throws NKFException, ParserConfigurationException
+  /**
+   * Performs RCL recursive processing the passed element and returns the resulting element
+   *
+   * @param element
+   * @param context
+   * @param tolerant
+   * @return
+   * @throws NKFException
+   */
+  public  Element processElement(Element element, INKFRequestContext context, boolean tolerant) throws NKFException
     {
-    List<Node> replacementNodes = new ArrayList<Node>();
+    List<Node> childNodes = getChildNodes(element);
+    element.removeChildren();
 
-    element.removeNamespaceDeclaration(NS_RCL);
-
-    List<Element> childElements = stripAndReturnChildElements(element, context, tolerant);
-
-    for (Element e : childElements)
+    List<Node> replacementNodes = processChildren(childNodes, context, tolerant);
+    for(Node newChild : replacementNodes)
       {
-      if( e.getNamespaceURI(NS_RCL)!= null)
-        {
-        if (TAG_INCLUDE.equals(e.getLocalName()))
-          {
-          replacementNodes.addAll(processInclude(e, context, tolerant));
-          }
-        else if (TAG_IF.equals(e.getLocalName()))
-          {
-          replacementNodes.addAll(processIf(e, context, tolerant));
-          }
-        else
-          {
-          // unsupported rcl: tag. Need exception handling code
-          }
-        }
-      else
-        {
-        replacementNodes.add(e);
-        }
+      element.appendChild(newChild );
       }
 
-    for(Node node : replacementNodes)
-      {
-      element.appendChild(node);
-      }
+    return element;
+
+
+
+//    List<Element> childElements = getChildElements(element);
+//    element.removeChildren();
+//
+//    List<Element> replacementNodes = processChildren(childElements, context, tolerant);
+//
+//    for (Node newChild : replacementNodes)
+//      {
+//      element.appendChild(newChild);
+//      }
+//    return element;
     }
 
 
 
 
-
-  protected List<Node> processInclude(final Element includeElement, final INKFRequestContext context, boolean tolerant) throws NKFException, ParserConfigurationException
+  public  List<Node> processChildren(List<Node> childNodes, INKFRequestContext context, boolean tolerant) throws NKFException
     {
     List<Node> replacementNodes = new ArrayList<Node>();
 
-    List<Element> childElements = stripAndReturnChildElements(includeElement, context, tolerant);
 
-    for(Element e : childElements)
+    for (Node node : childNodes)
       {
-      if( e.getNamespaceURI(NS_RCL)!= null)
-         {
-         if (TAG_REQUEST.equals(e.getLocalName()))
-           {
-           replacementNodes.add(processRequest(e, context, tolerant).copy());
-           }
-         else if(TAG_INCLUDE.equals(e.getLocalName()))
-           {
-           replacementNodes.addAll(processInclude(e, context,  tolerant));
-           }
-         else if(TAG_IF.equals(e.getLocalName()))
-           {
-           replacementNodes.addAll(processIf(e, context,  tolerant));
-           }
-         else
-           {
-           // unsupported rcl: tag. Need exception handling code
-           }
-         }
+      if (node instanceof Element)
+        {
+        Element element = (Element)node;
+
+        if( element.getNamespaceURI(NS_RCL)!= null)
+          {
+          ITagProcessor tagProcessor = TagProcessorRegistry.getTagProcessor(element.getLocalName());
+          if (tagProcessor != null)
+            {
+            List<Node> grandchildElements = getChildNodes(element);
+            element.removeChildren();
+            replacementNodes.addAll(tagProcessor.processChildren(grandchildElements, context, tolerant));
+            }
+          else
+            {
+            //Handle exception
+            }
+          }
+        else
+          {
+          element = processElement(element, context, tolerant);
+          replacementNodes.add(element);
+          }
+        }
       else
         {
-        replacementNodes.add(e);
+        replacementNodes.add(node);
         }
       }
+
+
+
 
     return replacementNodes;
     }
 
 
+//  public List<Element> processChildren(List<Element> childElements, INKFRequestContext context, boolean tolerant) throws NKFException
+//    {
+//    List<Element> replacementNodes = new ArrayList<Element>();
+//
+//
+//    for (Element child : childElements)
+//      {
+//      if( child.getNamespaceURI(NS_RCL)!= null)
+//        {
+//        ITagProcessor tagProcessor = TagProcessorRegistry.getTagProcessor(child.getLocalName());
+//        if (tagProcessor != null)
+//          {
+//          List<Element> grandchildElements = getChildElements(child);
+//          child.removeChildren();
+//          replacementNodes.addAll(tagProcessor.processChildren(grandchildElements, context, tolerant));
+//          }
+//        else
+//          {
+//          //Handle exception
+//          }
+//        }
+//      else
+//        {
+//        child = processElement(child, context, tolerant);
+//        replacementNodes.add(child);
+//        }
+//      }
+//
+//    return replacementNodes;
+//    }
 
-  protected Element processRequest(final Element requestElement, final INKFRequestContext context, boolean tolerant) throws NKFException, ParserConfigurationException
+
+
+  public List<Node> getChildNodes(final Element element)
+    {
+    List<Node> childNodes = new ArrayList<Node>();
+
+    for(int i=0; i< element.getChildCount(); i++ )
+      {
+      childNodes.add(element.getChild(i));
+      }
+    return childNodes;
+    }
+
+//  public  List<Element> getChildElements(final Element element )
+//    {
+//    List<Element> childElements = new ArrayList<Element>();
+//    Elements elements = element.getChildElements();
+//    for (int i=0; i<elements.size(); i++)
+//      {
+//      Element e = elements.get(i);
+//
+//      childElements.add(e);
+//      }
+//    return childElements;
+//    }
+
+  protected Element processRequest(final Element requestElement, final INKFRequestContext context, boolean tolerant) throws NKFException
     {
     Element returnValue = null;
     try
@@ -169,6 +225,7 @@ public class RCLRuntime extends StandardAccessorImpl
       org.w3c.dom.Document template = getMutableClone(node);
 
       returnValue = DOMConverter.convert(template).getRootElement();
+      returnValue = (Element)returnValue.copy();
       }
     catch(NKFException e)
       {
@@ -179,26 +236,8 @@ public class RCLRuntime extends StandardAccessorImpl
 
 
 
-  protected  boolean processRequestForBoolean(final Element requestElement, final INKFRequestContext context, boolean tolerant) throws NKFException
-    {
-    boolean returnValue = true;
-    try
-      {
-      INKFRequest request = buildRequest(requestElement, context);
-      request.setRepresentationClass(java.lang.Boolean.class);
-      returnValue = (Boolean)context.issueRequest(request);
-      }
-    catch(NKFException e)
-      {
-      exceptionHandler(context,  e, requestElement, tolerant);
-      }
 
-    return returnValue;
-    }
-
-
-
-    protected INKFRequest buildRequest(final Element requestElement, final INKFRequestContext context) throws NKFException
+  public INKFRequest buildRequest(final Element requestElement, final INKFRequestContext context) throws NKFException
       {
       INKFRequest request = null;
 
@@ -219,155 +258,39 @@ public class RCLRuntime extends StandardAccessorImpl
       }
 
 
-
-  protected List<Node> processIf(final Element ifElement, final INKFRequestContext context, boolean tolerant)   throws NKFException, ParserConfigurationException
+  public org.w3c.dom.Document getMutableClone(final org.w3c.dom.Node node) throws NKFException
     {
-    List<Node> replacementNodes = new ArrayList<Node>();
-    boolean test = false;
-
-    List<Element> childElements = stripAndReturnChildElements(ifElement, context, tolerant);
-
-    // Find and issue the request
-    for(Element e : childElements)
+    org.w3c.dom.Document result = null;
+    try
       {
-      if( e.getNamespaceURI(NS_RCL)!= null && TAG_REQUEST.equals(e.getLocalName()))
-         {
-         test = processRequestForBoolean(e, context, tolerant);
-         }
-      }
-
-    for(Element e : childElements)
-      {
-       if (e.getNamespaceURI(NS_RCL)!=null)
-         {
-         if (TAG_TRUE.equals(e.getLocalName()) && test)
-           {
-           replacementNodes.addAll(processIfTrueFalse(e, context, tolerant));
-           }
-         else if (TAG_FALSE.equals(e.getLocalName()) && !test)
-           {
-           replacementNodes.addAll(processIfTrueFalse(e, context, tolerant));
-           }
-         else if(TAG_INCLUDE.equals(e.getLocalName()))
-           {
-           replacementNodes.addAll(processInclude(e, context,  tolerant));
-           }
-         else if(TAG_IF.equals(e.getLocalName()))
-           {
-           replacementNodes.addAll(processIf(e, context,  tolerant));
-           }
-         else
-           {
-           // unsupported rcl: tag. Need exception handling code
-           }
-         }
-       else
-         {
-         replacementNodes.add(e);
-         }
-       }
-
-    return replacementNodes;
-    }
-
-
-  protected List<Node> processIfTrueFalse(final Element trueFalseElement, final INKFRequestContext context, boolean tolerant)  throws NKFException, ParserConfigurationException
-    {
-    List<Node> replacementNodes = new ArrayList<Node>();
-
-    List<Element> childElements = stripAndReturnChildElements(trueFalseElement, context, tolerant);
-
-    for(Element e: childElements)
-      {
-      if (e.getNamespaceURI(NS_RCL)!=null)
+      if (node instanceof org.w3c.dom.Document)
         {
-        if(TAG_INCLUDE.equals(e.getLocalName()))
-          {
-          replacementNodes.addAll(processInclude(e, context,  tolerant));
-          }
-        else if(TAG_IF.equals(e.getLocalName()))
-          {
-          replacementNodes.addAll(processIf(e, context,  tolerant));
-          }
-        else
-          {
-           // unsupported rcl: tag. Need exception handling code
-          }
+        result = (org.w3c.dom.Document) XMLUtils.safeDeepClone(node);
         }
       else
         {
-        replacementNodes.add(e);
+        result = org.netkernel.layer0.util.XMLUtils.newDocument();
+        result.appendChild(result.importNode(node, true));
         }
       }
-
-   return replacementNodes;
-    }
-
-  protected List<Element> stripAndReturnChildElements(final Element element, final INKFRequestContext context, boolean tolerant ) throws NKFException, ParserConfigurationException
-    {
-    List<Element> childElements = new ArrayList<Element>();
-    Elements elements = element.getChildElements();
-    for (int i=0; i<elements.size(); i++)
+    catch (ParserConfigurationException e)
       {
-      Element e = elements.get(i);
-      if (e.getChildElements().size() > 0 && "".equals(e.getNamespacePrefix()))
-        {
-        processTemplate(e, context, tolerant);
-        }
-
-      childElements.add(e);
-      }
-    element.removeChildren();
-
-    return childElements;
-    }
-
-
-
-  private org.w3c.dom.Document getMutableClone(final org.w3c.dom.Node node) throws ParserConfigurationException
-    {
-    org.w3c.dom.Document result;
-    if (node instanceof org.w3c.dom.Document)
-      {
-      result = (org.w3c.dom.Document) XMLUtils.safeDeepClone(node);
-      }
-    else
-      {
-      result = org.netkernel.layer0.util.XMLUtils.newDocument();
-      result.appendChild(result.importNode(node, true));
+      throw new NKFException("DOM Parsing failure", "Bad Stuff", e);
       }
     return result;
     }
 
-  protected void exceptionHandler(INKFRequestContext context, Exception exception, Node node, boolean tolerant)  throws NKFException
-    {
-    if(tolerant)
-      {
-      context.logFormatted(INKFLocale.LEVEL_DEBUG, "Message", "Path to element", node, "target");
-      }
-    else
-      {
-      throw context.createFormattedException("ID", "Message", "Location", exception, "");
-      }
-    }
-
-
-//  private void exceptionHandler(INKFRequestContext aHelper, boolean tolerant, String aException, String aMessage, org.w3c.dom.Node aElement, Exception e, String target) throws Exception
-//    {
-//    if (tolerant)
-//      {
-//      aHelper.logFormatted(INKFLocale.LEVEL_WARNING, aMessage, XMLUtils.getPathFor(aElement), e, target);
-//      if (e != null)
-//        {
-//        aHelper.logRaw(INKFLocale.LEVEL_WARNING, Utils.throwableToString(e));
-//        }
-//      }
-//    else
-//      {
-//      throw aHelper.createFormattedException(aException, aMessage, XMLUtils.getPathFor(aElement), e, target);
-//      }
-//    }
-
+  public void exceptionHandler(INKFRequestContext context, Exception exception, Node node, boolean tolerant)  throws NKFException
+     {
+     if(tolerant)
+       {
+       context.logFormatted(INKFLocale.LEVEL_DEBUG, "Message", "Path to element", node, "target");
+       }
+     else
+       {
+       throw context.createFormattedException("ID", "Message", "Location", exception, "");
+       }
+     }
 
 
   }
