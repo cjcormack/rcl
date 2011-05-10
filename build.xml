@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (C) 2011 by Chris Cormack
+  ~
+  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+  ~ of this software and associated documentation files (the "Software"), to deal
+  ~ in the Software without restriction, including without limitation the rights
+  ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the Software is
+  ~ furnished to do so, subject to the following conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be included in
+  ~ all copies or substantial portions of the Software.
+  ~
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  ~ THE SOFTWARE.
+  -->
+<project name="rcl" default="build">
+  <property file="build.properties"/>
+  <property name="nk4-ant-suite" location="../NK4-Ant-Suite-0_3/"/>
+  <property name="rcl.version" value="1.0.0"/>
+
+  <path id="nk4.anttools.path">
+    <fileset dir="${nk4-ant-suite}">
+      <include name="*.jar"/>
+      <include name="lib/*.jar"/>
+    </fileset>
+  </path>
+
+  <taskdef name="nkmodule"
+           classpathref="nk4.anttools.path"
+           classname="org.netkernelroc.antTools.packager.NetKernelModuleTask"/>
+  
+  <taskdef name="nkpackage"
+           classpathref="nk4.anttools.path"
+           classname="org.netkernelroc.antTools.packager.NetKernelPackageTask"/>
+
+  <taskdef name="nkdownload"
+           classpathref="nk4.anttools.path"
+           classname="org.netkernelroc.antTools.download.DownloadNetKernelAntTask"/>
+
+  <taskdef name="testng"
+           classpathref="nk4.anttools.path"
+           classname="org.testng.TestNGAntTask" />
+  
+  <target name="clean">
+    <delete dir="build"/>
+    <delete dir="${basedir}">
+      <include name="*.jar"/>
+    </delete>
+  </target>
+
+  <target name="clean.full" depends="clean">
+    <delete dir="lib/netkernel"/>
+  </target>
+  
+  <target name="check.downloaded">
+    <available file="lib/netkernel/modules.conf" property="netkernel.downloaded"/>
+  </target>
+
+  <target name="init" depends="check.downloaded" unless="netkernel.downloaded">
+    <nkdownload path="lib/netkernel"/>
+  </target>
+
+  <target name="rcl.init" depends="init">
+    <mkdir dir="build/modules/urn.org.netkernelroc.lang.rcl"/>
+  </target>
+
+  <target name="rcl.build" depends="rcl.init">
+    <path id="build.path">
+      <fileset dir="lib">
+        <include name="netkernel/lib/*.jar"/>
+        <include name="netkernel/module-jars/*.jar"/>
+        <include name="*.jar"/>
+      </fileset>
+      <fileset dir="urn.org.netkernelroc.lang.rcl/lib/"/>
+    </path>
+
+    <javac classpathref="build.path"
+           srcdir="urn.org.netkernelroc.lang.rcl/"
+           includes="**/*.java"
+           destdir="build/modules/urn.org.netkernelroc.lang.rcl/"
+           debug="true"
+           target="1.5"/>
+
+    <copy todir="build/modules/urn.org.netkernelroc.lang.rcl">
+      <fileset dir="urn.org.netkernelroc.lang.rcl"/>
+    </copy>
+
+    <nkmodule destdir="build/module-jars/"
+              modulefile="build/modules/urn.org.netkernelroc.lang.rcl/module.xml">
+      <zipfileset dir="build/modules/urn.org.netkernelroc.lang.rcl" prefix=""/>
+    </nkmodule>
+  </target>
+
+  <target name="rcl-test.init" depends="init">
+    <mkdir dir="build/modules/urn.org.netkernelroc.lang.rcl.test"/>
+  </target>
+
+  <target name="rcl-test.build" depends="rcl-test.init,rcl.build">
+    <path id="build.path">
+      <fileset dir="lib">
+        <include name="netkernel/lib/*.jar"/>
+        <include name="netkernel/module-jars/*.jar"/>
+        <include name="*.jar"/>
+      </fileset>
+      <pathelement path="build/modules/urn.org.netkernelroc.lang.rcl"/>
+    </path>
+
+    <javac classpathref="build.path"
+           srcdir="urn.org.netkernelroc.lang.rcl.test/"
+           includes="**/*.java"
+           destdir="build/modules/urn.org.netkernelroc.lang.rcl.test/"
+           debug="true"
+           target="1.5"/>
+
+    <copy todir="build/modules/urn.org.netkernelroc.lang.rcl.test">
+      <fileset dir="urn.org.netkernelroc.lang.rcl.test"/>
+    </copy>
+
+    <nkmodule destdir="build/module-jars/"
+              modulefile="build/modules/urn.org.netkernelroc.lang.rcl.test/module.xml">
+      <zipfileset dir="build/modules/urn.org.netkernelroc.lang.rcl.test" prefix=""/>
+    </nkmodule>
+  </target>
+
+  <target name="build">
+    <antcall target="rcl.build"/>
+    <antcall target="rcl-test.build"/>
+  </target>
+
+  <target name="package" depends="build">
+    <nkpackage destfile="build/netkernelroc-rcl-${rcl.version}.nkp.jar"
+               name="urn.org.netkernelroc.package.lang.rcl"
+               description="NetKernelROC / RCL"
+               version="${rcl.version}">
+      <modulesfileset dir="build/module-jars/" prefix="modules" includes="*.jar"/>
+    </nkpackage>
+  </target>
+  
+  <target name="test" depends="build">
+    <delete dir="log"/>
+    <mkdir dir="log"/>
+
+    <delete dir="build/tests"/>
+    <mkdir dir="build/tests"/>
+    
+    <path id="test-path">
+      <path refid="nk4.anttools.path"/>
+      <fileset dir="lib/netkernel/lib/">
+        <include name="*.jar"/>
+      </fileset>
+      <fileset dir="lib/netkernel/modules/">
+        <include name="*.jar"/>
+      </fileset>
+    </path>
+    <xslt classpathref="test-path"
+          in="build/modules/urn.org.netkernelroc.lang.rcl.test/etc/system/Tests.xml"
+          out="build/tests/rcl-testng.xml">
+      <style>
+        <javaresource classpathref="test-path" name="generate-suite.xsl"/>
+      </style>
+    </xslt>
+    
+    <testng listeners="org.netkernelroc.antTools.testNG.NKInvokerSuiteListener"
+            classpathref="test-path" haltonfailure="true">
+      <xmlfileset dir="build/tests"/>
+      <sysproperty key="java.protocol.handler.pkgs" value="org.ten60.netkernel.protocolhandler"/>
+      <sysproperty key="org.netkernelroc.antTools.testNG.modules" value="build/modules/urn.org.netkernelroc.lang.rcl,build/modules/urn.org.netkernelroc.lang.rcl.test"/>
+      <sysproperty key="org.netkernelroc.antTools.testNG.moduleConf" value="lib/netkernel/modules.conf"/>
+      <sysproperty key="netkernel.http.backend.port" value="1068"/>
+    </testng>
+  </target>
+</project>

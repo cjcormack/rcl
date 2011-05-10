@@ -552,7 +552,7 @@
     </request>
 
     <assert>
-      <notNull/>
+      <exception/>
     </assert>
   </test>
 
