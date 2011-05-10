@@ -3,3 +3,6 @@
 /lib/
 /log/
 /test-output/
+/.clover/
+/.cloverhistory/
+/clover/
