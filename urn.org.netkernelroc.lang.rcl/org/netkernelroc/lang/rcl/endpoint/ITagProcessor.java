@@ -13,8 +13,6 @@ import java.util.List;
 public interface ITagProcessor
   {
 
-
-  public List<Node> processChildren(List<Node> elements, INKFRequestContext context, boolean tolerant) throws NKFException;
-
+  List<Node> processChildren(List<Node> elements, INKFRequestContext context, boolean tolerant) throws NKFException;
 
   }

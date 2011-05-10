@@ -1,6 +1,10 @@
 package org.netkernelroc.lang.rcl.endpoint;
 
-import nu.xom.*;
+
+import nu.xom.Document;
+import nu.xom.Element;
+import nu.xom.Elements;
+import nu.xom.Node;
 import nu.xom.converters.DOMConverter;
 import org.netkernel.layer0.nkf.*;
 import org.netkernel.layer0.util.XMLUtils;
@@ -93,19 +97,6 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
       }
 
     return element;
-
-
-
-//    List<Element> childElements = getChildElements(element);
-//    element.removeChildren();
-//
-//    List<Element> replacementNodes = processChildren(childElements, context, tolerant);
-//
-//    for (Node newChild : replacementNodes)
-//      {
-//      element.appendChild(newChild);
-//      }
-//    return element;
     }
 
 
@@ -147,45 +138,8 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
         replacementNodes.add(node);
         }
       }
-
-
-
-
     return replacementNodes;
     }
-
-
-//  public List<Element> processChildren(List<Element> childElements, INKFRequestContext context, boolean tolerant) throws NKFException
-//    {
-//    List<Element> replacementNodes = new ArrayList<Element>();
-//
-//
-//    for (Element child : childElements)
-//      {
-//      if( child.getNamespaceURI(NS_RCL)!= null)
-//        {
-//        ITagProcessor tagProcessor = TagProcessorRegistry.getTagProcessor(child.getLocalName());
-//        if (tagProcessor != null)
-//          {
-//          List<Element> grandchildElements = getChildElements(child);
-//          child.removeChildren();
-//          replacementNodes.addAll(tagProcessor.processChildren(grandchildElements, context, tolerant));
-//          }
-//        else
-//          {
-//          //Handle exception
-//          }
-//        }
-//      else
-//        {
-//        child = processElement(child, context, tolerant);
-//        replacementNodes.add(child);
-//        }
-//      }
-//
-//    return replacementNodes;
-//    }
-
 
 
   public List<Node> getChildNodes(final Element element)
@@ -198,19 +152,6 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
       }
     return childNodes;
     }
-
-//  public  List<Element> getChildElements(final Element element )
-//    {
-//    List<Element> childElements = new ArrayList<Element>();
-//    Elements elements = element.getChildElements();
-//    for (int i=0; i<elements.size(); i++)
-//      {
-//      Element e = elements.get(i);
-//
-//      childElements.add(e);
-//      }
-//    return childElements;
-//    }
 
   protected Element processRequest(final Element requestElement, final INKFRequestContext context, boolean tolerant) throws NKFException
     {
@@ -280,6 +221,7 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
     return result;
     }
 
+
   public void exceptionHandler(INKFRequestContext context, Exception exception, Node node, boolean tolerant)  throws NKFException
      {
      if(tolerant)
@@ -291,6 +233,4 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
        throw context.createFormattedException("ID", "Message", "Location", exception, "");
        }
      }
-
-
   }

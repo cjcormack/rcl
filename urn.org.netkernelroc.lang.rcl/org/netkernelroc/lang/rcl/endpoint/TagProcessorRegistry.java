@@ -8,7 +8,7 @@ public class TagProcessorRegistry
   {
   private static TagProcessorRegistry tagProcessorRegistry = null;
 
-  protected Map<String, ITagProcessor> tagProcessors = new HashMap<String, ITagProcessor>();
+  private Map<String, ITagProcessor> tagProcessors = new HashMap<String, ITagProcessor>();
 
   private TagProcessorRegistry()
     {

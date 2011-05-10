@@ -48,7 +48,6 @@ public class IncludeTagProcessor extends RCLRuntime
               {
               //Handle exception
               }
-
             }
           }
         else
@@ -56,7 +55,6 @@ public class IncludeTagProcessor extends RCLRuntime
           element = processElement(element, context, tolerant);
           replacementNodes.add(element);
           }
-
         }
       else
         {
@@ -66,40 +64,4 @@ public class IncludeTagProcessor extends RCLRuntime
     return replacementNodes;
     }
   }
-
-
-//    for (Element child : childElements)
-//      {
-//      if (child.getNamespaceURI(NS_RCL) != null)
-//        {
-//        if (TAG_REQUEST.equals(child.getLocalName()))
-//          {
-//          replacementNodes.add(processRequest(child, context, tolerant));
-//          }
-//        else
-//          {
-//          ITagProcessor tagProcessor = TagProcessorRegistry.getTagProcessor(child.getLocalName());
-//          if (tagProcessor != null)
-//            {
-//            List<Element> grandchildElements = getChildElements(child);
-//            child.removeChildren();
-//            replacementNodes.addAll(tagProcessor.processChildren(grandchildElements, context, tolerant));
-//            }
-//          else
-//            {
-//            //Handle exception
-//            }
-//
-//          }
-//        }
-//      else
-//        {
-//        child = processElement(child, context, tolerant);
-//        replacementNodes.add(child);
-//        }
-//      }
-//
-//    return replacementNodes;
-//
-//    }
 

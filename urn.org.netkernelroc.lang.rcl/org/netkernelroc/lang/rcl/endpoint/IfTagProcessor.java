@@ -11,7 +11,6 @@ import java.util.List;
 
 public class IfTagProcessor extends RCLRuntime
   {
-  private static final String TAG_IF = "if";
   private static final String TAG_TRUE = "true";
   private static final String TAG_FALSE = "false";
 
@@ -72,7 +71,6 @@ public class IfTagProcessor extends RCLRuntime
               {
               //Handle exception
               }
-
             }
           }
         else
@@ -87,9 +85,7 @@ public class IfTagProcessor extends RCLRuntime
         }
       }
 
-
     return replacementNodes;
-
     }
 
 
@@ -139,6 +135,7 @@ public class IfTagProcessor extends RCLRuntime
     return replacementNodes;
     }
 
+
   public boolean processRequestForBoolean(final Element requestElement, final INKFRequestContext context, boolean tolerant) throws NKFException
     {
     boolean returnValue = true;
@@ -152,8 +149,7 @@ public class IfTagProcessor extends RCLRuntime
       {
       exceptionHandler(context, e, requestElement, tolerant);
       }
-
-    return returnValue;
+  return returnValue;
     }
 
   }
