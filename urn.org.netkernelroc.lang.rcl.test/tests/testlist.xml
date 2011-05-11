@@ -511,11 +511,16 @@
                     <rcl:identifier>active:true</rcl:identifier>
                   </rcl:request>
                   <rcl:true>
+                    <rcl:include>
                     <p>false - true paragraph</p>
+                    </rcl:include>
                   </rcl:true>
                   <rcl:false>
                     <p>false - false paragraph</p>
                   </rcl:false>
+                  <rcl:include>
+                    <p>Also included</p>
+                  </rcl:include>
                 </rcl:if>
               </rcl:false>
             </rcl:if>
@@ -557,7 +562,7 @@
   </test>
 
 
-  <notest name="Unsupported Tag">
+  <test name="Unsupported top level tag">
     <request>
       <identifier>active:rcl</identifier>
       <argument name="template">
@@ -573,9 +578,80 @@
     </request>
 
     <assert>
-      <notNull/>
+      <exception>Unexpected RCL tag</exception>
     </assert>
-  </notest>
+  </test>
+
+  <test name="Unsupported tag in rcl:if">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:unsupported/>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <exception>Unexpected RCL tag</exception>
+    </assert>
+  </test>
+
+  <test name="Two request tags in an rcl:if">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:if>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:request>
+                <rcl:identifier>active:true</rcl:identifier>
+              </rcl:request>
+              <rcl:true>
+                <div>true</div>
+              </rcl:true>
+              <rcl:false>
+                <div>false</div>
+              </rcl:false>
+            </rcl:if>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <exception>Unexpected RCL tag</exception>
+    </assert>
+  </test>
+
+  <test name="Unsupported tag in rcl:include">
+    <request>
+      <identifier>active:rcl</identifier>
+      <argument name="template">
+        <literal type="xml">
+          <div xmlns:rcl="http://netkernelroc.org/rcl">
+            <rcl:include>
+              <rcl:unsupported/>
+            </rcl:include>
+          </div>
+        </literal>
+      </argument>
+      <representation>org.w3c.dom.Document</representation>
+    </request>
+
+    <assert>
+      <exception>Unexpected RCL tag</exception>
+    </assert>
+  </test>
 
   <test name="Bad HTML?">
     <request>

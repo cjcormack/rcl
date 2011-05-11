@@ -47,6 +47,7 @@ public class IncludeTagProcessor extends RCLRuntime
             else
               {
               //Handle exception
+              throw new NKFException("Unexpected RCL tag", "The tag <" + NS_RCL + ":" + element.getLocalName() + "> was encountered while processing rcl:include");
               }
             }
           }

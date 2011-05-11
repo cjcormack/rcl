@@ -1,3 +1,16 @@
+.idea/
+.gitignore
+*~
+*.class
+urn.org.netkernelroc.lang.rcl/org/netkernel/
+configureNetKernel.xml
+*.iml
+XOM/
+.clover/
+.css/
+.img/
+clover/
+codeCoverage/
 /build.properties
 /build/
 /lib/

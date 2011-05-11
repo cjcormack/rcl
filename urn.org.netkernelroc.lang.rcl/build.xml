@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+    <!--
+    ~ Copyright (c) 2010-2011 Christopher Cormack
+    ~
+    ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+    ~ of this software and associated documentation files (the "Software"), to deal
+    ~ in the Software without restriction, including without limitation the rights
+    ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    ~ copies of the Software, and to permit persons to whom the Software is
+    ~ furnished to do so, subject to the following conditions:
+    ~
+    ~ The above copyright notice and this permission notice shall be included in
+    ~ all copies or substantial portions of the Software.
+    ~
+    ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    ~ THE SOFTWARE.
+    -->
+
+<project name="NK4-Ant-Suite" default="package">
+  <property file="build.properties"/>
+
+  <property name="version" value="0_3"/>
+  <property name="clover.path" value=""/>
+
+  <taskdef name="testng"
+           classpath="lib/testng-5.14.10.jar"
+           classname="org.testng.TestNGAntTask"/>
+  <taskdef resource="cloverlib.xml" classpath="${clover.path}/lib/clover.jar"/>
+
+  <clover-env/>
+
+  <path id="base.path">
+    <fileset dir="lib">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+
+  <target name="init">
+    <mkdir dir="build"/>
+    <mkdir dir="build/download/class"/>
+    <mkdir dir="build/testNG/class"/>
+    <mkdir dir="build/package/class"/>
+    <mkdir dir="test/build"/>
+    <mkdir dir="log"/>
+  </target>
+
+  <target name="clean">
+    <delete dir="build"/>
+    <delete dir="log"/>
+    <delete dir="test/build"/>
+    <delete dir="test/report"/>
+    <delete dir="test-output"/>
+    <delete dir="${basedir}">
+      <include name="NK4-Ant-Suite*.zip"/>
+      <include name="*.jar"/>
+    </delete>
+    <delete dir="nk-distribution"/>
+  </target>
+
+  <!-- nk4-download targets -->
+  <target name="nk4-download.build" depends="init">
+    <javac classpathref="base.path"
+           srcdir="src/download/java"
+           includes="**/*.java"
+           destdir="build/download/class"
+           debug="true"
+           target="1.5"/>
+  </target>
+
+  <target name="nk4-download.jar" depends="nk4-download.build">
+    <delete file="nk4-download.jar"/>
+    <jar destfile="nk4-download.jar">
+      <zipfileset dir="build/download/class" prefix="" includes="**/*"/>
+      <zipfileset dir="src/download/xsl" includes="processRepository.xsl,processLogConfig.xsl"/>
+      <zipfileset dir="src/download" includes="defaultRepository.xml"/>
+    </jar>
+  </target>
+
+  <target name="download-modules" depends="nk4-download.jar">
+    <path id="path">
+      <fileset file="nk4-download.jar"/>
+      <fileset dir="lib">
+        <include name="*.jar"/>
+      </fileset>
+      <pathelement location="${clover.path}/lib/clover.jar"/>
+    </path>
+    <taskdef name="downloadNetkernel"
+             classpathref="path"
+             classname="uk.org.onegch.netkernel.antTools.download.DownloadNetKernelAntTask"/>
+    <downloadNetkernel path="build/download-cache/"/>
+  </target>
+
+  <!-- nk4-testNG targets -->
+  <target name="nk4-testNG.build" depends="download-modules">
+    <path id="build.path">
+      <path refid="base.path"/>
+      <fileset dir="build/download-cache/lib/"/>
+    </path>
+
+    <javac classpathref="build.path"
+           srcdir="src/testNG/java"
+           includes="**/*.java"
+           destdir="build/testNG/class"
+           debug="true"
+           target="1.5"/>
+  </target>
+
+  <target name="nk4-testNG.jar" depends="nk4-testNG.build">
+    <delete file="nk4-testNG.jar"/>
+    <jar destfile="nk4-testNG.jar">
+      <zipfileset dir="build/testNG/class" prefix=""/>
+      <zipfileset dir="etc" prefix="etc"/>
+      <zipfileset dir="src/testNG/xsl" includes="generate-suite.xsl"/>
+    </jar>
+  </target>
+
+  <target name="jar" depends="nk4-download.jar,nk4-testNG.jar,nk4-package.jar"/>
+
+  <target name="package" depends="jar">
+    <delete file="NK4-Ant-Suite-${version}.zip"/>
+    <zip destfile="NK4-Ant-Suite-${version}.zip">
+      <zipfileset dir="${basedir}" prefix="NK4-Ant-Suite-${version}/" includes="*.jar"/>
+      <zipfileset dir="lib" prefix="NK4-Ant-Suite-${version}/lib"/>
+      <zipfileset dir="etc" prefix="NK4-Ant-Suite-${version}/etc"/>
+      <zipfileset dir="NOTICES" prefix="NK4-Ant-Suite-${version}/NOTICES"/>
+    </zip>
+  </target>
+
+  <!-- nk4-package targets -->
+  <target name="nk4-package.build" depends="init">
+    <javac classpathref="base.path"
+           srcdir="src/package/java"
+           includes="**/*.java"
+           destdir="build/package/class"
+           debug="true"
+           target="1.5"/>
+  </target>
+
+
+  <target name="nk4-package.jar" depends="nk4-package.build">
+    <delete file="nk4-package.jar"/>
+    <jar destfile="nk4-package.jar">
+      <zipfileset dir="build/package/class" prefix="" includes="**/*"/>
+      <zipfileset dir="src/package/xsl" includes="*.xsl"/>
+      <zipfileset dir="src/package" includes="module.xml"/>
+    </jar>
+  </target>
+
+  <target name="test-package" depends="nk4-package.jar">
+    <path id="path">
+      <fileset file="nk4-package.jar"/>
+      <fileset dir="lib">
+        <include name="*.jar"/>
+      </fileset>
+    </path>
+
+    <taskdef name="nkmodule"
+             classpathref="path"
+             classname="uk.org.onegch.netkernel.antTools.packager.NetKernelModuleTask"/>
+    <taskdef name="nkpackage"
+             classpathref="path"
+             classname="uk.org.onegch.netkernel.antTools.packager.NetKernelPackageTask"/>
+
+    <nkmodule destdir="test/build/modules" modulefile="test/modules/urn.test.uk.org.onegch.netkernel.test/module.xml">
+      <zipfileset dir="test/modules/urn.test.uk.org.onegch.netkernel.test" prefix=""/>
+    </nkmodule>
+
+
+    <nkmodule destdir="test/build/modules"
+              modulefile="test/modules/urn.test.uk.org.onegch.netkernel.selfTest/module.xml">
+      <zipfileset dir="test/modules/urn.test.uk.org.onegch.netkernel.selfTest" prefix=""/>
+    </nkmodule>
+
+    <nkpackage destfile="test/build/package.nkp.jar"
+               name="urn:test:uk:org:onegch:netkernel:test"
+               description="Tests for TestNG-NK"
+               version="0.3.0">
+      <modulesfileset dir="test/build/modules" prefix="modules" includes="*.jar"/>
+    </nkpackage>
+  </target>
+
+  <!-- test targets -->
+  <path id="test.path">
+    <fileset dir="${basedir}">
+      <include name="*.jar"/>
+    </fileset>
+    <pathelement path="test/build/"/>
+    <fileset dir="build/download-cache/lib/">
+      <include name="*.jar"/>
+    </fileset>
+    <fileset dir="build/download-cache/modules/">
+      <include name="*.jar"/>
+    </fileset>
+
+    <fileset dir="lib">
+      <include name="http*.jar"/>
+      <include name="commons*.jar"/>
+      <include name="dom4j*.jar"/>
+      <include name="jaxen*.jar"/>
+      <include name="testng*.jar"/>
+    </fileset>
+
+    <pathelement location="${clover.path}/lib/clover.jar"/>
+  </path>
+
+  <target name="compile-test" depends="init,jar,download-modules">
+    <javac classpathref="test.path"
+           srcdir="test/src"
+           destdir="test/build"
+           debug="true"
+           target="1.5"/>
+  </target>
+
+  <target name="test" depends="compile-test, jar">
+    <delete dir="test/log"/>
+    <mkdir dir="test/log"/>
+    <testng classpathref="test.path" outputdir="test/report">
+      <classfileset dir="test/build/" includes="**/*.class"/>
+    </testng>
+  </target>
+
+</project>

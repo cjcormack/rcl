@@ -61,7 +61,7 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
       }
     catch (ParserConfigurationException e)
       {
-
+      throw new NKFException("ID", "message", e);
       }
 
     INKFResponse response = context.createResponseFrom(domdoc);
@@ -76,15 +76,6 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
       }
     }
 
-  /**
-   * Performs RCL recursive processing the passed element and returns the resulting element
-   *
-   * @param element
-   * @param context
-   * @param tolerant
-   * @return
-   * @throws NKFException
-   */
   public  Element processElement(Element element, INKFRequestContext context, boolean tolerant) throws NKFException
     {
     List<Node> childNodes = getChildNodes(element);
@@ -125,6 +116,7 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
           else
             {
             //Handle exception
+            throw new NKFException("Unexpected RCL tag", "The tag <" + NS_RCL + ":" + element.getLocalName() + "> was encountered.");
             }
           }
         else
@@ -170,7 +162,9 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
       }
     catch(NKFException e)
       {
-      exceptionHandler(context, e, requestElement, tolerant);
+      throw new NKFException("Request failed.", "An exception occurred while processing an rcl:request", e);
+//
+//      exceptionHandler(context, e, requestElement, tolerant);
       }
       return returnValue;
     }
@@ -201,7 +195,7 @@ public class RCLRuntime extends StandardAccessorImpl implements ITagProcessor
 
   public org.w3c.dom.Document getMutableClone(final org.w3c.dom.Node node) throws NKFException
     {
-    org.w3c.dom.Document result = null;
+    org.w3c.dom.Document result;
     try
       {
       if (node instanceof org.w3c.dom.Document)

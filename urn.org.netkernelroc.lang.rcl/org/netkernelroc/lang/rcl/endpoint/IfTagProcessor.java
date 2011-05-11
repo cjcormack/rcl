@@ -25,8 +25,9 @@ public class IfTagProcessor extends RCLRuntime
   public List<Node> processChildren(List<Node> childNodes, INKFRequestContext context, boolean tolerant) throws NKFException
     {
     boolean test = false;
+    Element requestElement = null;
 
-    // Find and issue the request
+    // Find the request, issue it and then remove the node from the set of children
     for (Node n : childNodes)
       {
       if (n instanceof Element)
@@ -35,8 +36,13 @@ public class IfTagProcessor extends RCLRuntime
         if (e.getNamespaceURI(NS_RCL) != null && TAG_REQUEST.equals(e.getLocalName()))
           {
           test = processRequestForBoolean(e, context, tolerant);
+          requestElement = e;
           }
         }
+      }
+    if (requestElement != null)
+      {
+      childNodes.remove(requestElement);
       }
 
     List<Node> replacementNodes = new ArrayList<Node>();
@@ -50,13 +56,19 @@ public class IfTagProcessor extends RCLRuntime
 
         if (element.getNamespaceURI(NS_RCL) != null)
           {
-          if (TAG_TRUE.equals(element.getLocalName()) && test)
+          if (TAG_TRUE.equals(element.getLocalName()))
             {
-            replacementNodes.addAll(processIfTrueFalse(element, context, tolerant));
+            if (test)
+              {
+              replacementNodes.addAll(processIfTrueFalse(element, context, tolerant));
+              }
             }
-          else if (TAG_FALSE.equals(element.getLocalName()) && !test)
+          else if (TAG_FALSE.equals(element.getLocalName()))
             {
-            replacementNodes.addAll(processIfTrueFalse(element, context, tolerant));
+            if (!test)
+              {
+              replacementNodes.addAll(processIfTrueFalse(element, context, tolerant));
+              }
             }
           else
             {
@@ -70,6 +82,7 @@ public class IfTagProcessor extends RCLRuntime
             else
               {
               //Handle exception
+              throw new NKFException("Unexpected RCL tag", "The tag <" + NS_RCL + ":" + element.getLocalName() + "> was encountered while processing rcl:if");
               }
             }
           }
@@ -119,6 +132,7 @@ public class IfTagProcessor extends RCLRuntime
           else
             {
             //Handle exception
+            throw new NKFException("Unexpected RCL tag", "The tag <" + NS_RCL + ":" + element.getLocalName() + "> was encountered while processing rcl:true or rcl:false");
             }
           }
         else
